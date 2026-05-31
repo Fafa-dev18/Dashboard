@@ -1,3 +1,32 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDewKbWupwEPSuMRAsuxAjUXjQMRIoZwOo",
+  authDomain: "dashboard-10cc5.firebaseapp.com",
+  projectId: "dashboard-10cc5",
+  storageBucket: "dashboard-10cc5.firebasestorage.app",
+  messagingSenderId: "117274376635",
+  appId: "1:117274376635:web:f575c93598e3113b62ac9e",
+  measurementId: "G-WGVWPE142W",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 const MO = [
   "Janeiro",
   "Fevereiro",
@@ -26,79 +55,52 @@ const CATS = {
 };
 const GCOLS = ["#34d399", "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b"];
 
+let currentUser = null;
 let now = new Date(),
   cm = now.getMonth(),
   cy = now.getFullYear(),
   filt = "all";
-let nid = 100,
-  dInst = null,
+let dInst = null,
   tInst = null;
+let txs = [];
+let goals = [];
+let isSignUpMode = false;
 
-const defTx = [
-  {
-    id: 1,
-    type: "income",
-    name: "Salário Mensal",
-    amount: 5500,
-    cat: "Salário",
-    date: `${cy}-${String(cm + 1).padStart(2, "0")}-05`,
-  },
-  {
-    id: 2,
-    type: "expense",
-    name: "Aluguel Residencial",
-    amount: 1200,
-    cat: "Moradia",
-    date: `${cy}-${String(cm + 1).padStart(2, "0")}-07`,
-  },
-  {
-    id: 3,
-    type: "expense",
-    name: "Compras Supermercado",
-    amount: 420,
-    cat: "Alimentação",
-    date: `${cy}-${String(cm + 1).padStart(2, "0")}-10`,
-  },
-  {
-    id: 4,
-    type: "expense",
-    name: "App Transporte / Uber",
-    amount: 85,
-    cat: "Transporte",
-    date: `${cy}-${String(cm + 1).padStart(2, "0")}-12`,
-  },
-  {
-    id: 5,
-    type: "income",
-    name: "Projeto Freelance Website",
-    amount: 800,
-    cat: "Freelance",
-    date: `${cy}-${String(cm + 1).padStart(2, "0")}-15`,
-  },
-  {
-    id: 6,
-    type: "expense",
-    name: "Mensalidade Academia",
-    amount: 90,
-    cat: "Saúde",
-    date: `${cy}-${String(cm + 1).padStart(2, "0")}-16`,
-  },
-];
-
-let txs = JSON.parse(localStorage.getItem("fin3_tx")) || defTx;
-let goals = JSON.parse(localStorage.getItem("fin3_gl")) || [];
-nid = Math.max(nid, ...txs.map((t) => t.id)) + 1;
-
-function save() {
+async function saveDataToCloud() {
+  if (!currentUser) return;
   try {
-    localStorage.setItem("fin3_tx", JSON.stringify(txs));
-    localStorage.setItem("fin3_gl", JSON.stringify(goals));
-  } catch (e) {}
+    await setDoc(doc(db, "users_data", currentUser.uid), {
+      txs: txs,
+      goals: goals,
+    });
+  } catch (e) {
+    console.error("Erro ao salvar dados: ", e);
+  }
 }
+
+async function loadDataFromCloud(user) {
+  try {
+    const docRef = doc(db, "users_data", user.uid);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      txs = data.txs || [];
+      goals = data.goals || [];
+    } else {
+      txs = [];
+      goals = [];
+      await saveDataToCloud();
+    }
+    render();
+  } catch (e) {
+    console.error("Erro ao carregar dados: ", e);
+  }
+}
+
 function brl(n) {
   return (
     "R$\u00a0" +
-    n.toLocaleString("pt-BR", {
+    (n || 0).toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })
@@ -150,7 +152,6 @@ function renderMetrics() {
     `${t.filter((x) => x.type === "income").length} entrada(s)`;
   document.getElementById("vExpC").textContent =
     `${t.filter((x) => x.type === "expense").length} saída(s)`;
-
   const bEl = document.getElementById("vBal");
   bEl.textContent = (bal < 0 ? "-" : "") + brl(Math.abs(bal));
   bEl.style.color = bal >= 0 ? "#34d399" : "#f87171";
@@ -301,7 +302,7 @@ function renderTrend() {
 function renderGoals() {
   const el = document.getElementById("goalList");
   if (!goals.length) {
-    el.innerHTML = '<div class="empty-state">Nenhuma meta ativa</div>';
+    el.innerHTML = '<div class="empty-state">Nenhuma meta activa</div>';
     return;
   }
   el.innerHTML = goals
@@ -313,19 +314,26 @@ function renderGoals() {
         <span class="goal-name">${g.name}</span>
         <span style="display:flex;align-items:center;gap:8px">
           <span class="goal-pct" style="color:${c}">${pct}%</span>
-          <button class="goal-del" onclick="delGoal(${i})">✕</button>
+          <button class="goal-del" data-index="${i}">✕</button>
         </span>
       </div>
       <div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${c}"></div></div>
       <div class="goal-foot">
         <span>Guardado: ${brl(g.current)} / ${brl(g.target)}</span>
         <div class="goal-actions">
-          <button class="goal-add-funds" onclick="addGoalFunds(${i})">＋ Guardar</button>
+          <button class="goal-add-funds" data-index="${i}">＋ Guardar</button>
         </div>
       </div>
     </div>`;
     })
     .join("");
+
+  el.querySelectorAll(".goal-add-funds").forEach(
+    (b) => (b.onclick = () => addGoalFunds(b.dataset.index)),
+  );
+  el.querySelectorAll(".goal-del").forEach(
+    (b) => (b.onclick = () => delGoal(b.dataset.index)),
+  );
 }
 
 function addGoalFunds(index) {
@@ -334,13 +342,10 @@ function addGoalFunds(index) {
   );
   if (amountStr === null) return;
   const amount = parseFloat(amountStr.replace(",", "."));
-  if (isNaN(amount) || amount <= 0) {
-    return alert(
-      "Por favor, digite um valor numérico válido e maior que zero.",
-    );
-  }
+  if (isNaN(amount) || amount <= 0)
+    return alert("Digite um valor numérico válido.");
   goals[index].current += amount;
-  save();
+  saveDataToCloud();
   renderGoals();
 }
 
@@ -369,10 +374,14 @@ function renderTxs() {
         <div class="tx-meta">${t.cat} • ${ds}</div>
       </div>
       <span class="${t.type === "income" ? "tx-in" : "tx-ex"}">${t.type === "income" ? "+" : "-"}${brl(t.amount)}</span>
-      <button class="tx-del" onclick="delTx(${t.id})">🗑</button>
+      <button class="tx-del" data-id="${t.id}">🗑</button>
     </li>`;
     })
     .join("");
+
+  el.querySelectorAll(".tx-del").forEach(
+    (b) => (b.onclick = () => delTx(Number(b.dataset.id))),
+  );
 }
 
 function render() {
@@ -385,7 +394,7 @@ function render() {
   renderTxs();
 }
 
-function chgM(d) {
+window.chgM = (d) => {
   cm += d;
   if (cm > 11) {
     cm = 0;
@@ -396,71 +405,115 @@ function chgM(d) {
     cy--;
   }
   render();
-}
-function setF(f, b) {
+};
+window.setF = (f, b) => {
   filt = f;
   document.querySelectorAll(".tf").forEach((x) => x.classList.remove("on"));
   b.classList.add("on");
   renderTxs();
-}
-
-function openTM() {
-  const targetDate = `${cy}-${String(cm + 1).padStart(2, "0")}-15`;
-  document.getElementById("fDt").value = targetDate;
+};
+window.openTM = () => {
+  document.getElementById("fDt").value =
+    `${cy}-${String(cm + 1).padStart(2, "0")}-15`;
   document.getElementById("fNm").value = "";
   document.getElementById("fAm").value = "";
   updateModalCategories();
   document.getElementById("tmModal").classList.add("open");
-}
-function openGM() {
+};
+window.openGM = () => {
   document.getElementById("gNm").value = "";
   document.getElementById("gTg").value = "";
   document.getElementById("gCr").value = "";
   document.getElementById("gmModal").classList.add("open");
-}
-function closeM(id) {
+};
+window.closeM = (id) => {
   document.getElementById(id).classList.remove("open");
-}
+};
+window.updateModalCategories = updateModalCategories;
 
-function saveTx() {
-  const n = document.getElementById("fNm").value.trim();
-  const a = parseFloat(document.getElementById("fAm").value);
-  const t = document.getElementById("fTyp").value;
-  const c = document.getElementById("fCt").value;
-  const dt = document.getElementById("fDt").value;
+window.saveTx = () => {
+  const n = document.getElementById("fNm").value.trim(),
+    a = parseFloat(document.getElementById("fAm").value),
+    t = document.getElementById("fTyp").value,
+    c = document.getElementById("fCt").value,
+    dt = document.getElementById("fDt").value;
   if (!n || !a || a <= 0 || !dt)
-    return alert("Por favor, preencha todos os campos corretamente.");
-  txs.push({ id: nid++, type: t, name: n, amount: a, cat: c, date: dt });
-  save();
+    return alert("Preencha os campos corretamente.");
+  txs.push({ id: Date.now(), type: t, name: n, amount: a, cat: c, date: dt });
+  saveDataToCloud();
   closeM("tmModal");
   render();
-}
+};
 function delTx(id) {
   txs = txs.filter((t) => t.id !== id);
-  save();
+  saveDataToCloud();
   render();
 }
-function saveGoal() {
-  const n = document.getElementById("gNm").value.trim();
-  const t = parseFloat(document.getElementById("gTg").value);
-  const c = parseFloat(document.getElementById("gCr").value) || 0;
-  if (!n || !t || t <= 0) return alert("Insira dados de meta válidos.");
+
+window.saveGoal = () => {
+  const n = document.getElementById("gNm").value.trim(),
+    t = parseFloat(document.getElementById("gTg").value),
+    c = parseFloat(document.getElementById("gCr").value) || 0;
+  if (!n || !t || t <= 0) return alert("Insira dados válidos.");
   goals.push({ name: n, target: t, current: c });
-  save();
+  saveDataToCloud();
   closeM("gmModal");
   renderGoals();
-}
+};
 function delGoal(i) {
   goals.splice(i, 1);
-  save();
+  saveDataToCloud();
   renderGoals();
 }
 
-document.querySelectorAll(".modal-bg").forEach((bg) => {
+document.querySelectorAll(".modal-bg").forEach((bg) =>
   bg.addEventListener("click", function (e) {
     if (e.target === this) closeM(this.id);
-  });
+  }),
+);
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById("authContainer").style.display = "none";
+    document.getElementById("userDisplay").textContent =
+      user.email.split("@")[0];
+    loadDataFromCloud(user);
+  } else {
+    currentUser = null;
+    document.getElementById("authContainer").style.display = "flex";
+    document.getElementById("userDisplay").textContent = "Deslogado";
+  }
 });
 
-// Inicialização
-render();
+document.getElementById("btnPrimaryAuth").onclick = async () => {
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  if (!email || !password) return alert("Preencha os campos de acesso.");
+
+  try {
+    if (isSignUpMode) {
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert("Conta criada com sucesso!");
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+    }
+  } catch (error) {
+    alert("Erro na autenticação: " + error.message);
+  }
+};
+
+document.getElementById("btnToggleAuth").onclick = () => {
+  isSignUpMode = !isSignUpMode;
+  document.getElementById("btnPrimaryAuth").textContent = isSignUpMode
+    ? "Criar Conta"
+    : "Entrar";
+  document.getElementById("btnToggleAuth").textContent = isSignUpMode
+    ? "Já tenho uma conta (Entrar)"
+    : "Criar uma nova conta";
+  document.getElementById("authSubtitle").textContent = isSignUpMode
+    ? "Preencha os dados abaixo para se registrar"
+    : "Entre ou crie uma conta para sincronizar seus dados";
+};
+
+document.getElementById("btnLogout").onclick = () => signOut(auth);
