@@ -1,8 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Configurações do seu projeto Firebase
+// Configurações do projeto Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDewKbWupwEPSuMRAsuxAjUXjQMRIoZwOo",
   authDomain: "dashboard-10cc5.firebaseapp.com",
@@ -16,6 +16,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
 const MO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const CATS = {
@@ -32,7 +33,7 @@ let txs = [];
 let goals = [];
 let isSignUpMode = false;
 
-// SALVAR DADOS NA NUVEM FIRESTORE
+// Banco de Dados na Nuvem
 async function saveDataToCloud() {
   if (!currentUser) return;
   try {
@@ -42,7 +43,6 @@ async function saveDataToCloud() {
   }
 }
 
-// CARREGAR DADOS DA NUVEM FIRESTORE
 async function loadDataFromCloud(user) {
   try {
     const docRef = doc(db, "users_data", user.uid);
@@ -63,13 +63,11 @@ async function loadDataFromCloud(user) {
 
 function brl(n) { return 'R$\u00a0' + (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-// FILTRO DE MÊS CORRENTE + LOGICA DE LANÇAMENTOS FIXOS
 function mth() { 
   return txs.filter(t => { 
     const d = new Date(t.date + 'T12:00');
     if (t.recurrent) {
       const tDate = new Date(t.date + 'T12:00');
-      // Lançamento fixo aparece se o mês selecionado for igual ou maior que o mês de criação
       return (cy > tDate.getFullYear()) || (cy === tDate.getFullYear() && cm >= tDate.getMonth());
     }
     return d.getMonth() === cm && d.getFullYear() === cy; 
@@ -79,6 +77,7 @@ function mth() {
 function updateModalCategories() {
   const typ = document.getElementById('fTyp').value;
   const select = document.getElementById('fCt');
+  if(!select) return;
   select.innerHTML = '';
   const options = typ === 'income' ? ['Salário', 'Freelance', 'Investimento', 'Outros'] : ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Outros'];
   options.forEach(o => {
@@ -88,7 +87,7 @@ function updateModalCategories() {
   });
 }
 
-// RENDERIZAR METRICAS PRINCIPAIS (RECEITA, DESPESA, SALDO)
+// RENDERS PRINCIPAIS
 function renderMetrics() {
   const t = mth();
   const inc = t.filter(x => x.type === 'income').reduce((s, x) => s + x.amount, 0);
@@ -103,7 +102,6 @@ function renderMetrics() {
   bEl.style.color = bal >= 0 ? '#34d399' : '#f87171';
 }
 
-// RENDERIZAR GRÁFICO DONUT (DISTRIBUIÇÃO DE GASTOS)
 function renderDonut() {
   const exp = mth().filter(t => t.type === 'expense');
   const by = {}; exp.forEach(t => { by[t.cat] = (by[t.cat] || 0) + t.amount; });
@@ -127,7 +125,6 @@ function renderDonut() {
     </div>`).join('');
 }
 
-// RENDERIZAR GRÁFICO DE EVOLUÇÃO SEMESTRAL (LINHAS)
 function renderTrend() {
   const lbls = [], incs = [], exps = [];
   for (let i = 5; i >= 0; i--) {
@@ -166,10 +163,9 @@ function renderTrend() {
   });
 }
 
-// RENDERIZAR LISTA DE METAS
 function renderGoals() {
   const el = document.getElementById('goalList');
-  if (!goals.length) { el.innerHTML = '<div class="empty-state">Nenhuma meta ativa</div>'; return; }
+  if (!goals.length) { el.innerHTML = '<div class="empty-state">Nenhuma meta activa</div>'; return; }
   el.innerHTML = goals.map((g, i) => {
     const pct = Math.min(100, Math.round(g.current / g.target * 100));
     const c = GCOLS[i % GCOLS.length];
@@ -189,20 +185,46 @@ function renderGoals() {
     </div>`;
   }).join('');
 
-  el.querySelectorAll('.goal-add-funds').forEach(b => b.onclick = () => addGoalFunds(b.dataset.index));
+  el.querySelectorAll('.goal-add-funds').forEach(b => b.onclick = () => openFundModal(b.dataset.index));
   el.querySelectorAll('.goal-del').forEach(b => b.onclick = () => delGoal(b.dataset.index));
 }
 
-function addGoalFunds(index) {
-  const amountStr = prompt(`Quanto você deseja adicionar à meta "${goals[index].name}"?`);
-  if (amountStr === null) return;
-  const amount = parseFloat(amountStr.replace(',', '.'));
-  if (isNaN(amount) || amount <= 0) return alert('Digite um valor numérico válido.');
-  goals[index].current += amount;
-  saveDataToCloud(); renderGoals();
+// LOGICA MODAL DE APORTE DAS METAS
+function openFundModal(index) {
+  const goal = goals[index];
+  document.getElementById('fundModalTitle').textContent = `Guardar dinheiro em: ${goal.name}`;
+  document.getElementById('fundTargetIndex').value = index;
+  document.getElementById('fundAmount').value = '';
+  document.getElementById('fundModal').classList.add('open');
 }
 
-// RENDERIZAR LISTA DE MOVIMENTAÇÕES (TABELA/LISTA)
+window.confirmGoalFunds = () => {
+  const index = document.getElementById('fundTargetIndex').value;
+  const amountStr = document.getElementById('fundAmount').value;
+  const amount = parseFloat(amountStr);
+  
+  if (isNaN(amount) || amount <= 0) return alert('Digite um valor numérico válido maior que zero.');
+  
+  const goal = goals[index];
+  goal.current += amount;
+  
+  // NOVA LOGICA: Gera movimentação automática de Saída vinculada à Meta
+  const todayStr = new Date().toISOString().split('T')[0];
+  txs.push({
+    id: Date.now(),
+    type: 'expense',
+    name: `Aporte: ${goal.name}`,
+    amount: amount,
+    cat: 'Investimento', // Atribui à categoria investimento (pode alterar se quiser)
+    date: todayStr,
+    recurrent: false
+  });
+
+  saveDataToCloud();
+  closeM('fundModal');
+  render(); // Re-renderiza tudo para atualizar o saldo, os gráficos e a lista na hora
+};
+
 function renderTxs() {
   const list = mth().filter(t => filt === 'all' || t.type === filt).sort((a, b) => new Date(b.date) - new Date(a.date));
   const el = document.getElementById('txList');
@@ -225,9 +247,9 @@ function renderTxs() {
   el.querySelectorAll('.tx-del').forEach(b => b.onclick = () => delTx(Number(b.dataset.id)));
 }
 
-// RENDERIZAR CALENDÁRIO FLUXO DE CAIXA
 function renderCalendar() {
   const grid = document.getElementById('calendarGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   
   const firstDay = new Date(cy, cm, 1).getDay();
@@ -270,13 +292,13 @@ function renderCalendar() {
   }
 }
 
-// FUNÇÃO MESTRE DE ATUALIZAÇÃO DA TELA
 function render() {
-  document.getElementById('mLbl').textContent = `${MO[cm]} ${cy}`;
+  const mLbl = document.getElementById('mLbl');
+  if(mLbl) mLbl.textContent = `${MO[cm]} ${cy}`;
   renderMetrics(); renderDonut(); renderTrend(); renderGoals(); renderTxs(); renderCalendar();
 }
 
-// EVENTOS DE NAVEGAÇÃO E MODAIS INTERATIVOS
+// CONTROLADORES GERAIS
 window.chgM = (d) => { cm += d; if (cm > 11) { cm = 0; cy++; } if (cm < 0) { cm = 11; cy--; } render(); };
 window.setF = (f, b) => { filt = f; document.querySelectorAll('.tf').forEach(x => x.classList.remove('on')); b.classList.add('on'); renderTxs(); };
 window.openTM = () => { document.getElementById('fDt').value = `${cy}-${String(cm + 1).padStart(2, '0')}-15`; document.getElementById('fNm').value = ''; document.getElementById('fAm').value = ''; document.getElementById('fRecurrent').checked = false; updateModalCategories(); document.getElementById('tmModal').classList.add('open'); };
@@ -290,7 +312,6 @@ window.toggleProfileModal = () => {
 window.closeM = (id) => { document.getElementById(id).classList.remove('open'); };
 window.updateModalCategories = updateModalCategories;
 
-// SALVAR TRANSAÇÃO
 window.saveTx = () => {
   const n = document.getElementById('fNm').value.trim(), a = parseFloat(document.getElementById('fAm').value), t = document.getElementById('fTyp').value, c = document.getElementById('fCt').value, dt = document.getElementById('fDt').value;
   const isRecurrent = document.getElementById('fRecurrent').checked;
@@ -301,16 +322,14 @@ window.saveTx = () => {
 };
 function delTx(id) { txs = txs.filter(t => t.id !== id); saveDataToCloud(); render(); }
 
-// SALVAR METAS
 window.saveGoal = () => {
   const n = document.getElementById('gNm').value.trim(), t = parseFloat(document.getElementById('gTg').value), c = parseFloat(document.getElementById('gCr').value) || 0;
   if (!n || !t || t <= 0) return alert('Insira dados válidos.');
   goals.push({ name: n, target: t, current: c });
   saveDataToCloud(); renderGoals(); closeM('gmModal'); render();
 };
-function delGoal(i) { goals.splice(i, 1); saveDataToCloud(); renderGoals(); }
+function delGoal(i) { goals.splice(i, 1); saveDataToCloud(); render(); }
 
-// EDITAR E SALVAR DADOS DO PERFIL (NOME / FOTO)
 window.saveProfile = async () => {
   const name = document.getElementById('pName').value.trim();
   const avatarUrl = document.getElementById('pAvatar').value.trim();
@@ -329,23 +348,24 @@ window.saveProfile = async () => {
 
 document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', function (e) { if (e.target === this) closeM(this.id); }));
 
-// ESCUTADOR AUTOMÁTICO DE ESTADO DO USUÁRIO (FIREBASE AUTH)
+// ESCUTA ESTADO DE AUTENTICAÇÃO
 onAuthStateChanged(auth, (user) => {
+  const authContainer = document.getElementById('authContainer');
   if (user) {
     currentUser = user;
-    document.getElementById('authContainer').style.display = 'none';
+    if(authContainer) authContainer.style.display = 'none';
     document.getElementById('userDisplay').textContent = user.displayName || user.email.split('@')[0];
     if (user.photoURL) document.getElementById('userAvatar').src = user.photoURL;
     loadDataFromCloud(user);
   } else {
     currentUser = null;
-    document.getElementById('authContainer').style.display = 'flex';
+    if(authContainer) authContainer.style.display = 'flex';
     document.getElementById('userDisplay').textContent = "Deslogado";
     document.getElementById('userAvatar').src = "https://api.dicebear.com/7.x/bottts/svg?seed=Financas";
   }
 });
 
-// FLUXO DE LOGIN/REGISTRO SEM CONFLITO DE DUPLICIDADE
+// LOGICA LOGIN MANUAL
 document.getElementById('btnPrimaryAuth').onclick = async () => {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
@@ -374,7 +394,17 @@ document.getElementById('btnPrimaryAuth').onclick = async () => {
   }
 };
 
-// BOTÃO PARA ALTERNAR ENTRE SIGN-IN E SIGN-UP
+// LOGICA GOOGLE AUTH
+document.getElementById('btnGoogleAuth').onclick = async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (error) {
+    if (error.code !== 'auth/popup-closed-by-user') {
+      alert("Erro ao autenticar com o Google: " + error.message);
+    }
+  }
+};
+
 document.getElementById('btnToggleAuth').onclick = () => {
   isSignUpMode = !isSignUpMode;
   document.getElementById('authEmail').value = '';
