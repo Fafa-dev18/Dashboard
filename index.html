@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finanças Pro — Dashboard Pessoal</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- PAINEL LATERAL (SIDEBAR) -->
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">$</div>
+        <div>
+          <div class="logo-text">Finanças Pro</div>
+          <div class="logo-sub">Gestão Inteligente</div>
+        </div>
+      </div>
+
+      <div class="sb-title">Período de Análise</div>
+      <div class="month-picker">
+        <button class="nav-btn" onclick="chgM(-1)" aria-label="Mês anterior">
+          ◀
+        </button>
+        <div class="pill-month"><span id="mLbl">Maio 2026</span></div>
+        <button class="nav-btn" onclick="chgM(1)" aria-label="Próximo mês">
+          ▶
+        </button>
+      </div>
+
+      <div class="sb-title">Filtrar Histórico</div>
+      <nav class="tx-filter">
+        <button class="tf on" id="btn-all" onclick="setF('all', this)">
+          Todos os Registros
+        </button>
+        <button class="tf" id="btn-income" onclick="setF('income', this)">
+          Apenas Entradas
+        </button>
+        <button class="tf" id="btn-expense" onclick="setF('expense', this)">
+          Apenas Saídas
+        </button>
+      </nav>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="main-content">
+      <div class="metrics">
+        <div class="mc mc-income">
+          <div class="mc-lbl">▲ Receitas</div>
+          <div class="mc-val" id="vInc">R$ 0,00</div>
+          <div class="mc-sub" id="vIncC">0 entradas</div>
+        </div>
+        <div class="mc mc-expense">
+          <div class="mc-lbl">▼ Despesas</div>
+          <div class="mc-val" id="vExp">R$ 0,00</div>
+          <div class="mc-sub" id="vExpC">0 saídas</div>
+        </div>
+        <div class="mc mc-balance">
+          <div class="mc-lbl">⚖ Saldo Atual</div>
+          <div class="mc-val" id="vBal">R$ 0,00</div>
+          <div class="mc-sub">Consolidado do período</div>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="card">
+          <div class="card-hd">Por categoria (Gasto)</div>
+          <div
+            id="catList"
+            style="
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+            "
+          ></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Distribuição Visual</div>
+          <div class="donut-area">
+            <div
+              style="
+                position: relative;
+                width: 110px;
+                height: 110px;
+                flex-shrink: 0;
+              "
+            >
+              <canvas id="donutC" width="110" height="110"></canvas>
+            </div>
+            <div class="donut-legend" id="donutLeg"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 18px">
+        <div class="card-hd">
+          Evolução Mensal
+          <span
+            style="
+              color: var(--t3);
+              font-weight: 400;
+              text-transform: none;
+              font-size: 12px;
+              margin-left: 6px;
+            "
+            >Últimos 6 meses</span
+          >
+        </div>
+        <div class="trend-legend">
+          <div class="tl-item">
+            <span class="tl-sq" style="background: #34d399"></span>Receitas
+          </div>
+          <div class="tl-item">
+            <span class="tl-sq" style="background: #f87171"></span>Despesas
+          </div>
+        </div>
+        <div style="position: relative; width: 100%; height: 160px">
+          <canvas id="trendC"></canvas>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="card">
+          <div class="card-hd">
+            Metas de Economia
+            <button class="card-hd-action" onclick="openGM()">
+              ➕ nova meta
+            </button>
+          </div>
+          <div id="goalList" style="flex: 1"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd">Histórico de Lançamentos</div>
+          <ul class="tx-list" id="txList"></ul>
+          <button class="add-btn" onclick="openTM()">
+            ➕ Adicionar Lançamento
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Modal: Transação -->
+    <div class="modal-bg" id="tmModal">
+      <div class="modal">
+        <h3>Novo Lançamento</h3>
+        <div class="fr">
+          <label>Tipo</label
+          ><select id="fTyp" onchange="updateModalCategories()">
+            <option value="expense">Despesa (Saída)</option>
+            <option value="income">Receita (Entrada)</option>
+          </select>
+        </div>
+        <div class="fr">
+          <label>Descrição</label
+          ><input
+            id="fNm"
+            type="text"
+            placeholder="Ex: Mercado, Freelance..."
+          />
+        </div>
+        <div class="fr">
+          <label>Valor (R$)</label
+          ><input
+            id="fAm"
+            type="number"
+            placeholder="0,00"
+            min="0"
+            step="0.01"
+          />
+        </div>
+        <div class="fr">
+          <label>Categoria</label
+          ><select id="fCt"></select>
+        </div>
+        <div class="fr"><label>Data</label><input id="fDt" type="date" /></div>
+        <div class="mbtns">
+          <button class="mb-cancel" onclick="closeM('tmModal')">
+            Cancelar
+          </button>
+          <button class="mb-save" onclick="saveTx()">Salvar Registro</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Meta -->
+    <div class="modal-bg" id="gmModal">
+      <div class="modal">
+        <h3>Definir Nova Meta</h3>
+        <div class="fr">
+          <label>Nome do Objetivo</label
+          ><input
+            id="gNm"
+            type="text"
+            placeholder="Ex: Reserva de Emergência, Viagem..."
+          />
+        </div>
+        <div class="fr">
+          <label>Valor Alvo (R$)</label
+          ><input
+            id="gTg"
+            type="number"
+            placeholder="0,00"
+            min="0"
+            step="0.01"
+          />
+        </div>
+        <div class="fr">
+          <label>Valor Já Guardado (R$)</label
+          ><input
+            id="gCr"
+            type="number"
+            placeholder="0,00"
+            min="0"
+            step="0.01"
+          />
+        </div>
+        <div class="mbtns">
+          <button class="mb-cancel" onclick="closeM('gmModal')">
+            Cancelar
+          </button>
+          <button class="mb-save" onclick="saveGoal()">Criar Meta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts Externos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
