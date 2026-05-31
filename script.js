@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// Configurações do seu projeto Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDewKbWupwEPSuMRAsuxAjUXjQMRIoZwOo",
   authDomain: "dashboard-10cc5.firebaseapp.com",
@@ -31,6 +32,7 @@ let txs = [];
 let goals = [];
 let isSignUpMode = false;
 
+// SALVAR DADOS NA NUVEM FIRESTORE
 async function saveDataToCloud() {
   if (!currentUser) return;
   try {
@@ -40,6 +42,7 @@ async function saveDataToCloud() {
   }
 }
 
+// CARREGAR DADOS DA NUVEM FIRESTORE
 async function loadDataFromCloud(user) {
   try {
     const docRef = doc(db, "users_data", user.uid);
@@ -60,12 +63,13 @@ async function loadDataFromCloud(user) {
 
 function brl(n) { return 'R$\u00a0' + (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-// LÓGICA RECORRENTE: Filtra movimentações normais do mês OU fixas criadas antes/durante este período
+// FILTRO DE MÊS CORRENTE + LOGICA DE LANÇAMENTOS FIXOS
 function mth() { 
   return txs.filter(t => { 
     const d = new Date(t.date + 'T12:00');
     if (t.recurrent) {
       const tDate = new Date(t.date + 'T12:00');
+      // Lançamento fixo aparece se o mês selecionado for igual ou maior que o mês de criação
       return (cy > tDate.getFullYear()) || (cy === tDate.getFullYear() && cm >= tDate.getMonth());
     }
     return d.getMonth() === cm && d.getFullYear() === cy; 
@@ -84,6 +88,7 @@ function updateModalCategories() {
   });
 }
 
+// RENDERIZAR METRICAS PRINCIPAIS (RECEITA, DESPESA, SALDO)
 function renderMetrics() {
   const t = mth();
   const inc = t.filter(x => x.type === 'income').reduce((s, x) => s + x.amount, 0);
@@ -98,6 +103,7 @@ function renderMetrics() {
   bEl.style.color = bal >= 0 ? '#34d399' : '#f87171';
 }
 
+// RENDERIZAR GRÁFICO DONUT (DISTRIBUIÇÃO DE GASTOS)
 function renderDonut() {
   const exp = mth().filter(t => t.type === 'expense');
   const by = {}; exp.forEach(t => { by[t.cat] = (by[t.cat] || 0) + t.amount; });
@@ -121,6 +127,7 @@ function renderDonut() {
     </div>`).join('');
 }
 
+// RENDERIZAR GRÁFICO DE EVOLUÇÃO SEMESTRAL (LINHAS)
 function renderTrend() {
   const lbls = [], incs = [], exps = [];
   for (let i = 5; i >= 0; i--) {
@@ -159,9 +166,10 @@ function renderTrend() {
   });
 }
 
+// RENDERIZAR LISTA DE METAS
 function renderGoals() {
   const el = document.getElementById('goalList');
-  if (!goals.length) { el.innerHTML = '<div class="empty-state">Nenhuma meta activa</div>'; return; }
+  if (!goals.length) { el.innerHTML = '<div class="empty-state">Nenhuma meta ativa</div>'; return; }
   el.innerHTML = goals.map((g, i) => {
     const pct = Math.min(100, Math.round(g.current / g.target * 100));
     const c = GCOLS[i % GCOLS.length];
@@ -194,6 +202,7 @@ function addGoalFunds(index) {
   saveDataToCloud(); renderGoals();
 }
 
+// RENDERIZAR LISTA DE MOVIMENTAÇÕES (TABELA/LISTA)
 function renderTxs() {
   const list = mth().filter(t => filt === 'all' || t.type === filt).sort((a, b) => new Date(b.date) - new Date(a.date));
   const el = document.getElementById('txList');
@@ -216,6 +225,7 @@ function renderTxs() {
   el.querySelectorAll('.tx-del').forEach(b => b.onclick = () => delTx(Number(b.dataset.id)));
 }
 
+// RENDERIZAR CALENDÁRIO FLUXO DE CAIXA
 function renderCalendar() {
   const grid = document.getElementById('calendarGrid');
   grid.innerHTML = '';
@@ -260,11 +270,13 @@ function renderCalendar() {
   }
 }
 
+// FUNÇÃO MESTRE DE ATUALIZAÇÃO DA TELA
 function render() {
   document.getElementById('mLbl').textContent = `${MO[cm]} ${cy}`;
   renderMetrics(); renderDonut(); renderTrend(); renderGoals(); renderTxs(); renderCalendar();
 }
 
+// EVENTOS DE NAVEGAÇÃO E MODAIS INTERATIVOS
 window.chgM = (d) => { cm += d; if (cm > 11) { cm = 0; cy++; } if (cm < 0) { cm = 11; cy--; } render(); };
 window.setF = (f, b) => { filt = f; document.querySelectorAll('.tf').forEach(x => x.classList.remove('on')); b.classList.add('on'); renderTxs(); };
 window.openTM = () => { document.getElementById('fDt').value = `${cy}-${String(cm + 1).padStart(2, '0')}-15`; document.getElementById('fNm').value = ''; document.getElementById('fAm').value = ''; document.getElementById('fRecurrent').checked = false; updateModalCategories(); document.getElementById('tmModal').classList.add('open'); };
@@ -278,6 +290,7 @@ window.toggleProfileModal = () => {
 window.closeM = (id) => { document.getElementById(id).classList.remove('open'); };
 window.updateModalCategories = updateModalCategories;
 
+// SALVAR TRANSAÇÃO
 window.saveTx = () => {
   const n = document.getElementById('fNm').value.trim(), a = parseFloat(document.getElementById('fAm').value), t = document.getElementById('fTyp').value, c = document.getElementById('fCt').value, dt = document.getElementById('fDt').value;
   const isRecurrent = document.getElementById('fRecurrent').checked;
@@ -288,6 +301,7 @@ window.saveTx = () => {
 };
 function delTx(id) { txs = txs.filter(t => t.id !== id); saveDataToCloud(); render(); }
 
+// SALVAR METAS
 window.saveGoal = () => {
   const n = document.getElementById('gNm').value.trim(), t = parseFloat(document.getElementById('gTg').value), c = parseFloat(document.getElementById('gCr').value) || 0;
   if (!n || !t || t <= 0) return alert('Insira dados válidos.');
@@ -296,6 +310,7 @@ window.saveGoal = () => {
 };
 function delGoal(i) { goals.splice(i, 1); saveDataToCloud(); renderGoals(); }
 
+// EDITAR E SALVAR DADOS DO PERFIL (NOME / FOTO)
 window.saveProfile = async () => {
   const name = document.getElementById('pName').value.trim();
   const avatarUrl = document.getElementById('pAvatar').value.trim();
@@ -314,6 +329,7 @@ window.saveProfile = async () => {
 
 document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', function (e) { if (e.target === this) closeM(this.id); }));
 
+// ESCUTADOR AUTOMÁTICO DE ESTADO DO USUÁRIO (FIREBASE AUTH)
 onAuthStateChanged(auth, (user) => {
   if (user) {
     currentUser = user;
@@ -329,22 +345,40 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+// FLUXO DE LOGIN/REGISTRO SEM CONFLITO DE DUPLICIDADE
 document.getElementById('btnPrimaryAuth').onclick = async () => {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
+  
   if (!email || !password) return alert('Preencha os campos de acesso.');
+  
   try {
     if (isSignUpMode) {
       await createUserWithEmailAndPassword(auth, email, password);
       alert('Conta criada com sucesso!');
+      isSignUpMode = false;
+      document.getElementById('btnPrimaryAuth').textContent = 'Entrar';
+      document.getElementById('btnToggleAuth').textContent = 'Criar uma nova conta';
+      document.getElementById('authSubtitle').textContent = 'Entre ou crie uma conta para sincronizar seus dados';
     } else {
       await signInWithEmailAndPassword(auth, email, password);
     }
-  } catch (error) { alert("Erro na autenticação: " + error.message); }
+  } catch (error) { 
+    if (error.code === 'auth/email-already-in-use') {
+      alert('Este e-mail já está cadastrado. Clique para entrar.');
+    } else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      alert('E-mail ou senha incorretos. Verifique seus dados.');
+    } else {
+      alert("Erro na autenticação: " + error.message); 
+    }
+  }
 };
 
+// BOTÃO PARA ALTERNAR ENTRE SIGN-IN E SIGN-UP
 document.getElementById('btnToggleAuth').onclick = () => {
   isSignUpMode = !isSignUpMode;
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPassword').value = '';
   document.getElementById('btnPrimaryAuth').textContent = isSignUpMode ? 'Criar Conta' : 'Entrar';
   document.getElementById('btnToggleAuth').textContent = isSignUpMode ? 'Já tenho uma conta (Entrar)' : 'Criar uma nova conta';
   document.getElementById('authSubtitle').textContent = isSignUpMode ? 'Preencha os dados abaixo para se registrar' : 'Entre ou crie uma conta para sincronizar seus dados';
