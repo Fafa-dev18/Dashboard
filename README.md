@@ -12,14 +12,14 @@ O **Finanças Pro** é um ecossistema completo de controle financeiro pessoal, d
 
 <div align="center">
   <p><b>Visão Geral do Dashboard (Modo Escuro)</b></p>
-  <img src="./assets/readm.png" alt="Dashboard Principal" width="85%">
+  <img src="./Assets/readm.png" alt="Dashboard Principal" width="85%">
 </div>
 
 <br>
 
 <div align="center">
   <p><b>Tela de log-in</b></p>
-  <img src="./assets/readm1.png" alt="login" width="85%">
+  <img src="./Assets/readm1.png" alt="login" width="85%">
 </div>
 
 ---
