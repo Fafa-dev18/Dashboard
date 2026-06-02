@@ -1,218 +1,324 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finanças Pro</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-
-  <div id="authContainer" class="auth-container">
-    <div class="auth-box">
-      <h2>Finanças Pro</h2>
-      <p id="authSubtitle">Entre ou crie uma conta para sincronizar seus dados</p>
-      
-      <input type="email" id="authEmail" placeholder="E-mail">
-      <input type="password" id="authPassword" placeholder="Senha">
-      
-      <button id="btnPrimaryAuth" class="btn-primary">Entrar</button>
-      
-      <button id="btnGoogleAuth" class="btn-google-auth">
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
-        Entrar com o Google
-      </button>
-      
-      <button id="btnToggleAuth" class="btn-flat">Criar uma nova conta</button>
-    </div>
-  </div>
-
-  <div class="main-container">
-    
-    <header class="app-header">
-      <div class="logo-area">
-        <h1>Finanças Pro</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finanças Pro - Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div id="authContainer" class="auth-screen" style="display: flex">
+      <div class="auth-box">
+        <h2>Finanças Pro</h2>
+        <p id="authSubtitle">
+          Entre ou crie uma conta para sincronizar seus dados
+        </p>
+        <input type="email" id="authEmail" placeholder="E-mail" />
+        <input type="password" id="authPassword" placeholder="Senha" />
+        <button id="btnPrimaryAuth" class="btn-primary">Entrar</button>
+        <button id="btnGoogleAuth" class="btn-google">
+          <img
+            src="https://cdn-images-1.medium.com/max/1200/1*b0GscbybybSg_H6V6pB4wA.png"
+            alt="Google"
+          />
+          Entrar com Google
+        </button>
+        <button id="btnToggleAuth" class="btn-flat">
+          Criar uma nova conta
+        </button>
       </div>
-      <div class="user-profile-area">
-        <div class="profile-trigger" onclick="toggleProfileModal()">
-          <img id="userAvatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Financas" alt="Avatar" class="avatar-img">
-          <span id="userDisplay">Carregando...</span>
-        </div>
-        <button id="btnLogout" class="btn-logout">Sair</button>
-      </div>
-    </header>
-
-    <div class="month-nav">
-      <button onclick="chgM(-1)">◀</button>
-      <h2 id="mLbl">Maio 2026</h2>
-      <button onclick="chgM(1)">▶</button>
     </div>
 
-    <section class="metrics-grid">
-      <div class="card card-inc">
-        <h3>Receitas</h3>
-        <p id="vInc">R$ 0,00</p>
-        <span id="vIncC">0 entrada(s)</span>
-      </div>
-      <div class="card card-exp">
-        <h3>Despesas</h3>
-        <p id="vExp">R$ 0,00</p>
-        <span id="vExpC">0 saída(s)</span>
-      </div>
-      <div class="card card-bal">
-        <h3>Saldo Atual</h3>
-        <p id="vBal">R$ 0,00</p>
-        <span>Disponível em conta</span>
-      </div>
-    </section>
+    <div class="app-container">
+      <aside class="sidebar">
+        <div class="brand">📊 Finanças Pro</div>
+        <nav class="menu">
+          <button onclick="openTM()" class="btn-nav">
+            ➕ Nova Movimentação
+          </button>
+          <button onclick="openGM()" class="btn-nav">🎯 Nova Meta</button>
+          <button onclick="openBudgetModal()" class="btn-nav">
+            🛡️ Definir Limites
+          </button>
+        </nav>
+      </aside>
 
-    <div class="dashboard-layout">
-      <div class="left-col">
-        <div class="chart-box">
-          <h3>Evolução Semestral</h3>
-          <div style="height: 220px; position: relative;">
-            <canvas id="trendC"></canvas>
+      <main class="main-content">
+        <header class="main-header">
+          <div class="month-selector">
+            <button onclick="chgM(-1)">◀</button>
+            <h2 id="mLbl">Janeiro 2026</h2>
+            <button onclick="chgM(1)">▶</button>
           </div>
-        </div>
 
-        <div class="chart-box calendar-box">
-          <h3>Fluxo de Caixa no Calendário</h3>
-          <div class="calendar-header">
-            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-          </div>
-          <div id="calendarGrid" class="calendar-grid"></div>
-        </div>
-      </div>
+          <div class="header-user" id="userMenuTrigger">
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
+              id="userAvatar"
+              alt="Avatar"
+              class="avatar-img"
+            />
+            <div class="user-meta">
+              <span id="userDisplay" class="user-name">Carregando...</span>
+              <span class="user-role">Painel Pessoal</span>
+            </div>
+            <i class="chevron-icon">▼</i>
 
-      <div class="right-col">
-        <div class="chart-box">
-          <div class="section-header">
-            <h3>Movimentações</h3>
-            <button class="btn-add" onclick="openTM()">＋ Lançar</button>
+            <div class="user-dropdown" id="userDropdown">
+              <button onclick="window.openProfileModal()">
+                <span class="icon">👤</span> Editar Perfil
+              </button>
+              <hr />
+              <button id="btnLogout" class="logout-btn">
+                <span class="icon">🚪</span> Sair da Conta
+              </button>
+            </div>
           </div>
-          <div class="filters-bar" style="margin: 12px 0;">
-            <button class="tf on" onclick="setF('all', this)">Todas</button>
-            <button class="tf" onclick="setF('income', this)">Entradas</button>
-            <button class="tf" onclick="setF('expense', this)">Saídas</button>
-          </div>
-          <ul id="txList" class="tx-list"></ul>
-        </div>
+        </header>
 
-        <div class="chart-box">
-          <h3>Distribuição de Gastos</h3>
-          <div class="donut-container-wrapper">
-            <canvas id="donutC" width="160" height="160"></canvas>
-            <div id="donutLeg" class="donut-legend"></div>
+        <section class="metrics-grid">
+          <div class="card card-inc">
+            <h3>Receitas</h3>
+            <p id="vInc">R$ 0,00</p>
+            <span id="vIncC" class="card-sub">0 entradas</span>
           </div>
-        </div>
+          <div class="card card-exp">
+            <h3>Despesas</h3>
+            <p id="vExp">R$ 0,00</p>
+            <span id="vExpC" class="card-sub">0 saídas</span>
+          </div>
+          <div class="card card-inv">
+            <h3>Aportes / Guardado</h3>
+            <p id="vInv">R$ 0,00</p>
+            <span id="vInvC" class="card-sub">Focado no futuro</span>
+          </div>
+          <div class="card card-bal">
+            <h3>Saldo Livre Disponível</h3>
+            <p id="vBal">R$ 0,00</p>
+            <span id="vBalStatus" class="card-sub">Calculando fluxo...</span>
+          </div>
+        </section>
 
-        <div class="chart-box">
-          <div class="section-header">
-            <h3>Minhas Metas</h3>
-            <button class="btn-add" onclick="openGM()">＋ Nova Meta</button>
+        <section class="dashboard-grid">
+          <div class="grid-col-left">
+            <div class="panel trend-panel">
+              <h3>Evolução do Fluxo de Caixa</h3>
+              <div class="chart-container">
+                <canvas id="trendC"></canvas>
+              </div>
+            </div>
+
+            <div class="panel insights-panel">
+              <h3>💡 Insights de Inteligência Financeira</h3>
+              <div id="insightsList"></div>
+            </div>
+
+            <div class="panel">
+              <h3>📅 Calendário de Gastos</h3>
+              <div class="cal-header">
+                <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span
+                ><span>Qui</span><span>Sex</span><span>Sáb</span>
+              </div>
+              <div id="calendarGrid" class="cal-grid"></div>
+            </div>
           </div>
-          <div id="goalList" class="goal-list" style="margin-top: 15px;"></div>
+
+          <div class="grid-col-right">
+            <div class="panel">
+              <h3>Distribuição de Despesas</h3>
+              <div class="donut-wrapper">
+                <canvas id="donutC" width="160" height="160"></canvas>
+                <div id="donutLeg" class="donut-legend"></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h3>🛡️ Teto de Gastos (Limites)</h3>
+              <div id="budgetList" class="budget-list"></div>
+            </div>
+
+            <div class="panel">
+              <h3>🎯 Minhas Metas</h3>
+              <div id="goalList" class="goal-list"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Últimas Movimentações</h3>
+                <div class="filter-tabs">
+                  <button onclick="setF('all', this)" class="tf on">
+                    Todas
+                  </button>
+                  <button onclick="setF('income', this)" class="tf">
+                    Entradas
+                  </button>
+                  <button onclick="setF('expense', this)" class="tf">
+                    Saídas
+                  </button>
+                </div>
+              </div>
+              <ul id="txList" class="tx-list"></ul>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="tmModal" class="modal-bg">
+      <div class="modal-content">
+        <h3 class="modal-title">Adicionar Movimentação</h3>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="fTyp" onchange="updateModalCategories()">
+            <option value="expense">Saída (Despesa)</option>
+            <option value="income">Entrada (Receita)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <input type="text" id="fNm" placeholder="Ex: Mercado Central" />
+        </div>
+        <div class="form-group">
+          <label>Valor (R$)</label>
+          <input type="number" id="fAm" placeholder="0.00" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select id="fCt"></select>
+        </div>
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="fDt" />
+        </div>
+        <div class="form-group-row">
+          <input type="checkbox" id="fRecurrent" />
+          <label for="fRecurrent">Lançamento Fixo (Mensal)</label>
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeM('tmModal')" class="btn-close">
+            Cancelar
+          </button>
+          <button onclick="saveTx()" class="btn-save">Salvar</button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="tmModal" class="modal-bg">
-    <div class="modal-content">
-      <h3>Adicionar Movimentação</h3>
-      <div class="form-group">
-        <label>Descrição</label>
-        <input type="text" id="fNm" placeholder="Ex: Mercado">
-      </div>
-      <div class="form-group">
-        <label>Valor (R$)</label>
-        <input type="number" id="fAm" step="0.01" placeholder="0.00">
-      </div>
-      <div class="form-group">
-        <label>Tipo</label>
-        <select id="fTyp" onchange="updateModalCategories()">
-          <option value="expense">Despesa (Saída)</option>
-          <option value="income">Receita (Entrada)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Categoria</label>
-        <select id="fCt"></select>
-      </div>
-      <div class="form-group">
-        <label>Data</label>
-        <input type="date" id="fDt">
-      </div>
-      <div class="form-group checkbox-group">
-        <input type="checkbox" id="fRecurrent">
-        <label for="fRecurrent">Lançamento Fixo (Repetir todo mês)</label>
-      </div>
-      <div class="modal-buttons">
-        <button class="btn-flat" onclick="closeM('tmModal')">Cancelar</button>
-        <button class="btn-primary" onclick="saveTx()">Salvar</button>
+    <div id="gmModal" class="modal-bg">
+      <div class="modal-content">
+        <h3>Nova Meta Poupança</h3>
+        <div class="form-group">
+          <label>Nome da Meta</label
+          ><input type="text" id="gNm" placeholder="Ex: Viagem de Férias" />
+        </div>
+        <div class="form-group">
+          <label>Valor Alvo (R$)</label
+          ><input type="number" id="gTg" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label>Valor Inicial Guardado (R$)</label
+          ><input type="number" id="gCr" placeholder="0.00" />
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeM('gmModal')" class="btn-close">
+            Cancelar
+          </button>
+          <button onclick="saveGoal()" class="btn-save">Criar Meta</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div id="gmModal" class="modal-bg">
-    <div class="modal-content">
-      <h3>Criar Nova Meta</h3>
-      <div class="form-group">
-        <label>Objetivo</label>
-        <input type="text" id="gNm" placeholder="Ex: Comprar Notebook">
-      </div>
-      <div class="form-group">
-        <label>Valor Alvo (R$)</label>
-        <input type="number" id="gTg" placeholder="3000.00">
-      </div>
-      <div class="form-group">
-        <label>Valor Inicial Já Guardado (R$)</label>
-        <input type="number" id="gCr" placeholder="0.00">
-      </div>
-      <div class="modal-buttons">
-        <button class="btn-flat" onclick="closeM('gmModal')">Cancelar</button>
-        <button class="btn-primary" onclick="saveGoal()">Criar Meta</button>
+    <div id="fundModal" class="modal-bg">
+      <div class="modal-content">
+        <h3 id="fundModalTitle">Guardar Dinheiro</h3>
+        <input type="hidden" id="fundTargetIndex" />
+        <div class="form-group">
+          <label>Quanto quer aportar agora? (R$)</label
+          ><input type="number" id="fundAmount" placeholder="0.00" />
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeM('fundModal')" class="btn-close">
+            Cancelar
+          </button>
+          <button onclick="confirmGoalFunds()" class="btn-save">
+            Confirmar Aporte
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div id="fundModal" class="modal-bg">
-    <div class="modal-content">
-      <h3 id="fundModalTitle">Guardar dinheiro</h3>
-      <input type="hidden" id="fundTargetIndex">
-      <div class="form-group">
-        <label>Quanto deseja adicionar?</label>
-        <input type="number" id="fundAmount" step="0.01" placeholder="0.00">
-      </div>
-      <div class="modal-buttons">
-        <button class="btn-flat" onclick="closeM('fundModal')">Cancelar</button>
-        <button class="btn-primary" onclick="confirmGoalFunds()">Confirmar</button>
+    <div id="budgetModal" class="modal-bg">
+      <div class="modal-content">
+        <h3>🛡️ Configurar Limite Mensal</h3>
+        <div class="form-group">
+          <label>Categoria de Despesa</label>
+          <select id="bCt">
+            <option value="Moradia">Moradia</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Lazer">Lazer</option>
+            <option value="Educação">Educação</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Teto Máximo de Gastos (R$)</label
+          ><input type="number" id="bLmt" placeholder="Ex: 500.00" />
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeM('budgetModal')" class="btn-close">
+            Cancelar
+          </button>
+          <button onclick="saveBudget()" class="btn-save">Salvar Limite</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div id="profileModal" class="modal-bg">
-    <div class="modal-content">
-      <h3>Editar Perfil</h3>
-      <div class="form-group">
-        <label>Nome de Exibição</label>
-        <input type="text" id="pName" placeholder="Seu nome">
-      </div>
-      <div class="form-group">
-        <label>URL da Imagem de Avatar</label>
-        <input type="text" id="pAvatar" placeholder="https://linkdafoto.com/foto.jpg">
-      </div>
-      <div class="modal-buttons">
-        <button class="btn-flat" onclick="closeM('profileModal')">Cancelar</button>
-        <button class="btn-primary" onclick="saveProfile()">Salvar Perfil</button>
+    <div id="profileModal" class="modal-bg">
+      <div class="modal-content profile-modal-content">
+        <h3>Configurações do Perfil</h3>
+        <div class="profile-preview-zone" style="text-align: center; cursor: pointer;">
+          <img
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
+            id="profileModalAvatar"
+            alt="Preview"
+            class="avatar-preview"
+            style="transition: opacity 0.2s;"
+            onmouseover="this.style.opacity='0.8'"
+            onmouseout="this.style.opacity='1'"
+          />
+          <p style="font-size: 11px; color: #64748b; margin-top: 6px; margin-bottom: 12px;">
+            📸 Clique na foto para carregar um arquivo local
+          </p>
+        </div>
+        <div class="form-group">
+          <label>Seu Nome / Apelido</label>
+          <input type="text" id="pName" placeholder="Ex: Luiz Gustavo" />
+        </div>
+        <div class="form-group">
+          <label>Link (URL) da Foto de Perfil</label>
+          <input
+            type="text"
+            id="pPhoto"
+            placeholder="https://linkdafoto.com/foto.jpg"
+          />
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeM('profileModal')" class="btn-close">
+            Cancelar
+          </button>
+          <button onclick="window.saveProfile()" class="btn-save">
+            Salvar Alterações
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script type="module" src="script.js"></script>
-</body>
+    <script type="module" src="script.js"></script>
+  </body>
 </html>
