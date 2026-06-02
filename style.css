@@ -1009,3 +1009,16 @@ body {
     text-align: center;
   }
 }
+/* Adiciona isto ao final do teu style.css */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #3b82f6;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  z-index: 9999;
+  animation: fadeIn 0.3s;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
