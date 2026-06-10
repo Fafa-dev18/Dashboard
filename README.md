@@ -7,7 +7,7 @@
 O **Finanças Pro** é um ecossistema completo de controle financeiro pessoal, desenvolvido com tecnologias front-end puras e integrado ao Firebase para persistência de dados em tempo real. O foco principal é a usabilidade, permitindo gerenciar receitas, despesas, monitorar metas e visualizar o fluxo de caixa de forma automatizada.
 ---
 
-[**Live Demo 🚀**](https://finance-dashboard-cyan-beta.vercel.app/)
+[**Live Demo 🚀**](https://fafa-dev18.github.io/Dashboard/)
 
 ---
 
