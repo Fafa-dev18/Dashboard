@@ -1,538 +1,360 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Finanças Pro — Dashboard</title>
-  <link rel="stylesheet" href="style.css"/>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-
-<!-- ══════════════ AUTH OVERLAY ══════════════════════════════════════════════ -->
-<div id="authContainer" class="auth-overlay" style="display:flex">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finanças Pro — Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="https://fav.farm/🔥" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    
+<div id="authContainer" class="auth-overlay-container" style="display: flex">
   <div class="auth-card">
-    <div class="auth-icon">📊</div>
-    <div class="auth-title">Finanças Pro</div>
-    <p class="auth-subtitle">Entre ou crie uma conta para sincronizar seus dados na nuvem</p>
-    <input type="email"    id="authEmail"    placeholder="Seu e-mail"/>
-    <input type="password" id="authPassword" placeholder="Senha"/>
-    <button id="btnPrimaryAuth" class="btn-auth-primary">Entrar</button>
-    <button id="btnGoogleAuth"  class="btn-google">
-      <img src="https://cdn-images-1.medium.com/max/1200/1*b0GscbybybSg_H6V6pB4wA.png" alt="Google"/>
-      Continuar com Google
+    <div class="auth-header">
+      <div class="auth-logo">Finanças Pro</div>
+      <p class="auth-subtitle">Entre ou crie uma conta para sincronizar seus dados na nuvem</p>
+    </div>
+    <div class="form-group">
+      <input type="email" id="authEmail" class="fi-input" placeholder="Seu e-mail" />
+    </div>
+    <div class="form-group">
+      <input type="password" id="authPassword" class="fi-input" placeholder="Senha" />
+    </div>
+    <button id="btnPrimaryAuth" class="auth-btn-primary">Entrar</button>
+    
+    <div class="auth-separator">ou</div>
+    
+    <button id="btnGoogleAuth" class="auth-btn-google">
+      <img src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" alt="Google" />
+      Entrar com o Google
     </button>
-    <button id="btnToggleAuth" class="btn-toggle">Criar uma nova conta</button>
+    
+    <p class="auth-toggle-hint">
+      Não tem uma conta? 
+      <button id="btnToggleAuth" class="auth-toggle-link">Criar Conta</button>
+    </p>
   </div>
 </div>
+</div>
 
-<!-- ══════════════ APP ════════════════════════════════════════════════════════ -->
-<div class="page-wrap">
-
-  <!-- ── SIDEBAR ──────────────────────────────────────────────────────────── -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-badge">📊</div>
-      Finanças Pro
-      <span class="online-dot"></span>
-    </div>
-
-    <nav>
-      <div class="nav-section-label">Navegação</div>
-      <button class="nav-item active" id="nav-overview" onclick="scrollToSection('overview',this)">📈 Visão Geral</button>
-      <button class="nav-item" id="nav-planning"  onclick="scrollToSection('planning',this)">🎯 Metas &amp; Limites</button>
-      <button class="nav-item" id="nav-reports"   onclick="scrollToSection('reports',this)">📄 Relatórios</button>
-
-      <div class="nav-divider"></div>
-      <div class="nav-section-label">Ações Rápidas</div>
-      <button class="nav-item" onclick="openTM()">➕ Nova Movimentação</button>
-      <button class="nav-item" onclick="openGM()">🎯 Nova Meta</button>
-      <button class="nav-item" onclick="openBudgetModal()">🛡️ Definir Limite</button>
-
-      <button class="nav-item nav-planning" id="btnPlanning" onclick="window.togglePlanningMode()">
-        🛠️ Modo Planejamento: OFF
-      </button>
-    </nav>
-  </aside>
-
-  <!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
-  <main class="main">
-
-    <!-- TOP BAR -->
-    <div class="topbar">
-      <div class="topbar-left">
-        <div>
-          <div class="page-title">Dashboard Financeiro</div>
-          <div class="page-subtitle">Acompanhe e controle seu dinheiro em tempo real</div>
-        </div>
-        <div class="month-pill glass-sm">
-          <button class="month-btn" onclick="chgM(-1)" aria-label="Mês anterior">◀</button>
-          <span id="mLbl">Janeiro 2026</span>
-          <button class="month-btn" onclick="chgM(1)"  aria-label="Próximo mês">▶</button>
-        </div>
+    <aside class="sidebar">
+      <div class="sb-head">
+        <span class="sb-logo">Finanças Pro</span>
       </div>
 
-      <div class="topbar-right">
-        <button class="icon-btn glass-sm" onclick="window.togglePrivacyMode()" id="btnPrivacy"
-                title="Modo privacidade" style="color:var(--text-soft)">👁️</button>
-
-        <!-- User pill -->
-        <div class="user-pill glass-sm" id="userMenuTrigger">
-          <img id="userAvatar"
-               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
-               alt="Avatar" class="avatar"/>
-          <div>
-            <div class="user-pill-name" id="userDisplay">Carregando…</div>
-            <div class="user-pill-role">Painel Pessoal</div>
-          </div>
-          <span class="chevron">▼</span>
-
-          <div class="dropdown glass" id="userDropdown">
-            <button onclick="window.openProfileModal()">👤 &nbsp;Editar Perfil</button>
-            <hr/>
-            <button id="btnLogout" class="logout">🚪 &nbsp;Sair da Conta</button>
+      <div class="user-profile-menu">
+        <div id="userMenuTrigger" class="user-trigger">
+          <img id="userAvatar" class="user-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" alt="Avatar" />
+          <div class="user-meta-info">
+            <span id="userDisplay" class="user-name-label">Carregando...</span>
+            <span class="user-role-label">Premium</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- SAVINGS BANNER -->
-    <div id="savingsRateBanner" class="savings-banner glass">
-      <span>🌱 &nbsp;Taxa de Poupança deste mês:&nbsp;<b id="vSavingsRate">0%</b></span>
-      <span class="savings-rate-val" id="vSavingsRateBig">0%</span>
-    </div>
-
-    <!-- ╔══════════════════════════════════════════════════════╗ -->
-    <!-- ║  SECTION 1 — VISÃO GERAL                            ║ -->
-    <!-- ╚══════════════════════════════════════════════════════╝ -->
-    <section id="overview">
-
-      <!-- Metric cards -->
-      <div class="metrics-row">
-        <div class="metric-card glass mc-teal">
-          <div class="mc-icon">💰</div>
-          <div class="mc-label">Receitas</div>
-          <div class="mc-value" id="vInc">R$ 0,00</div>
-          <div class="mc-sub"  id="vIncC">0 entradas</div>
-        </div>
-        <div class="metric-card glass mc-red">
-          <div class="mc-icon">💸</div>
-          <div class="mc-label">Despesas</div>
-          <div class="mc-value" id="vExp">R$ 0,00</div>
-          <div class="mc-sub"  id="vExpC">0 saídas</div>
-        </div>
-        <div class="metric-card glass mc-purple">
-          <div class="mc-icon">📦</div>
-          <div class="mc-label">Aportes / Investido</div>
-          <div class="mc-value" id="vInv">R$ 0,00</div>
-          <div class="mc-sub">Focado no futuro</div>
-        </div>
-        <div class="metric-card glass mc-blue">
-          <div class="mc-icon">⚖️</div>
-          <div class="mc-label">Saldo Livre</div>
-          <div class="mc-value" id="vBal">R$ 0,00</div>
-          <div class="mc-sub"  id="vBalStatus">Calculando fluxo…</div>
+        <div id="userDropdown" class="user-dropdown-box">
+          <button class="ud-item" onclick="window.openProfileModal()">👤 Editar Perfil</button>
+          <button id="btnLogout" class="ud-item logout-btn">🚪 Sair da Conta</button>
         </div>
       </div>
 
-      <!-- Main 2-col grid -->
-      <div class="main-grid">
+      <nav class="sb-nav">
+        <button class="sb-item active" onclick="window.scrollToSection('dashboard', this)">📊 Dashboard</button>
+        <button class="sb-item" onclick="window.scrollToSection('transactions-section', this)">💸 Movimentações</button>
+        <button class="sb-item" onclick="window.scrollToSection('planning', this)">🎯 Metas e Tetos</button>
+      </nav>
+    </aside>
 
-        <!-- LEFT -->
-        <div class="col">
+    <div class="main-content">
+      
+      <div class="top-actions-bar">
+        <button id="btnPlanning" class="planning-pill-btn" onclick="window.togglePlanningMode()">🛠️ Modo Planejamento: OFF</button>
+        <button id="btnPrivacy" class="action-circle-btn" onclick="window.togglePrivacyMode()">👁️</button>
+        <button class="action-circle-btn" onclick="window.exportToCSV()">📥</button>
+        <label class="action-circle-btn" style="cursor:pointer;">
+          📤
+          <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="window.handleCSVImport(event)" />
+        </label>
+      </div>
 
-          <!-- Trend chart -->
-          <div class="panel glass">
-            <div class="panel-head">
-              <span class="panel-title">Evolução do Fluxo de Caixa — 6 meses</span>
+      <main>
+        <section id="dashboard">
+          
+          <div class="metrics-grid">
+            <div class="mcard inc-card">
+              <div class="mcard-hd">Receitas</div>
+              <div id="vInc" class="mcard-val">R$ 0,00</div>
+              <div id="vIncC" class="mcard-sub">0 entradas</div>
             </div>
-            <div class="chart-box">
+            <div class="mcard exp-card">
+              <div class="mcard-hd">Despesas</div>
+              <div id="vExp" class="mcard-val">R$ 0,00</div>
+              <div id="vExpC" class="mcard-sub">0 saídas</div>
+            </div>
+            <div class="mcard inv-card">
+              <div class="mcard-hd">Investido/Poupado</div>
+              <div id="vInv" class="mcard-val">R$ 0,00</div>
+              <div id="vSavingsRate" class="mcard-sub">0% de taxa</div>
+            </div>
+            <div class="mcard bal-card">
+              <div class="mcard-hd">Saldo Mensal</div>
+              <div id="vBal" class="mcard-val">R$ 0,00</div>
+              <div id="vBalStatus" class="mcard-sub">Calculando fluxo...</div>
+            </div>
+          </div>
+
+          <div id="savingsRateBanner" class="savings-banner">
+            <div class="sb-left">
+              <span class="sb-title">Sua Taxa de Poupança</span>
+              <span class="sb-desc">A porcentagem ideal recomendada de aportes é acima de 20% das suas receitas.</span>
+            </div>
+            <div id="vSavingsRateBig" class="sb-right-rate">0%</div>
+          </div>
+
+          <div class="two-equal">
+            <div class="panel">
+              <div class="panel-hd">
+                <span class="panel-title">📅 Agenda de Fluxo</span>
+                <div class="month-nav-box">
+                  <button class="mn-btn" onclick="window.chgM(-1)">‹</button>
+                  <span id="mLbl" class="mn-lbl">...</span>
+                  <button class="mn-btn" onclick="window.chgM(1)">›</button>
+                </div>
+              </div>
+              <div class="cal-weekdays">
+                <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+              </div>
+              <div id="calendarGrid" class="cal-grid"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-hd">
+                <span class="panel-title">🍕 Distribuição de Gastos</span>
+                <button id="btnToggleChart" class="chart-mode-btn" onclick="window.toggleChartMode()">🔄 Ver 50/30/20</button>
+              </div>
+              <div class="donut-area">
+                <div class="chart-wrap">
+                  <canvas id="donutC" width="180" height="180"></canvas>
+                </div>
+                <div id="donutLeg" class="donut-leg"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-bottom: 32px;">
+            <div class="panel-hd">
+              <span class="panel-title">📊 Histórico de Tendência (6 meses)</span>
+            </div>
+            <div style="height: 220px; width: 100%;">
               <canvas id="trendC"></canvas>
             </div>
           </div>
+        </section>
 
-          <!-- Insights -->
-          <div class="panel glass">
-            <div class="panel-head">
-              <span class="panel-title">💡 Insights Financeiros</span>
-            </div>
-            <div id="insightsList"></div>
+        <section id="transactions-section">
+          <div class="sec-head">
+            <span>💸 Histórico de Movimentações</span>
+            <button class="p-action-btn" onclick="window.openTM()">➕ Novo Lançamento</button>
           </div>
 
-          <!-- Calendar -->
-          <div class="panel glass">
-            <div class="panel-head">
-              <span class="panel-title">📅 Calendário de Gastos</span>
+          <div class="two-equal">
+            <div class="panel">
+              <div class="panel-hd">
+                <div class="tx-filters">
+                  <button class="tf on" onclick="window.setF('all', this)">Todas</button>
+                  <button class="tf" onclick="window.setF('income', this)">Entradas</button>
+                  <button class="tf" onclick="window.setF('expense', this)">Saídas</button>
+                </div>
+              </div>
+              <div class="search-container">
+                <input type="text" id="txSearchInput" class="search-input-field" placeholder="🔎 Buscar por descrição..." oninput="window.filterTransactionsAdvanced()" />
+              </div>
+              <ul id="txList" class="tx-list-wrap">
+                </ul>
             </div>
-            <div class="cal-hdr">
-              <span>Dom</span><span>Seg</span><span>Ter</span>
-              <span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-            </div>
-            <div id="calendarGrid" class="cal-grid"></div>
-          </div>
 
-        </div>
-
-        <!-- RIGHT -->
-        <div class="col">
-
-          <!-- Donut -->
-          <div class="panel glass">
-            <div class="panel-head">
-              <span class="panel-title">Distribuição</span>
-              <button onclick="window.toggleChartMode()" id="btnToggleChart"
-                      style="background:rgba(255,255,255,.07);border:1px solid var(--glass-border);
-                             color:var(--text-soft);padding:5px 11px;border-radius:8px;
-                             font-size:.76rem;font-weight:700;transition:all .15s;">
-                🔄 50/30/20
-              </button>
-            </div>
-            <div class="donut-wrap">
-              <canvas id="donutC" width="130" height="130"></canvas>
-              <div id="donutLeg" class="donut-legend"></div>
+            <div class="panel">
+              <div class="panel-hd">
+                <span class="panel-title">💡 Insights & Recomendações Automáticas</span>
+              </div>
+              <div id="insightsList" class="insights-wrap">
+                </div>
             </div>
           </div>
+        </section>
 
-        </div>
-      </div>
-    </section>
-
-    <!-- ╔══════════════════════════════════════════════════════╗ -->
-    <!-- ║  SECTION 2 — METAS & LIMITES                        ║ -->
-    <!-- ╚══════════════════════════════════════════════════════╝ -->
-    <section id="planning" style="margin-top:32px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-        <div class="page-title" style="font-size:1.05rem;">🎯 Metas &amp; Limites</div>
-        <div style="flex:1;height:1px;background:var(--glass-border);"></div>
-        <button onclick="openGM()" style="background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.2);
-          color:var(--teal);padding:7px 15px;border-radius:var(--r);font-size:.8rem;font-weight:700;
-          transition:all .15s;">+ Nova Meta</button>
-        <button onclick="openBudgetModal()" style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.2);
-          color:var(--blue);padding:7px 15px;border-radius:var(--r);font-size:.8rem;font-weight:700;
-          transition:all .15s;">+ Novo Limite</button>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;" class="planning-grid">
-        <div class="panel glass">
-          <div class="panel-head"><span class="panel-title">🛡️ Teto de Gastos Mensais</span></div>
-          <div id="budgetList"></div>
-        </div>
-        <div class="panel glass">
-          <div class="panel-head"><span class="panel-title">🎯 Metas de Poupança</span></div>
-          <div id="goalList"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ╔══════════════════════════════════════════════════════╗ -->
-    <!-- ║  SECTION 3 — RELATÓRIOS                             ║ -->
-    <!-- ╚══════════════════════════════════════════════════════╝ -->
-    <section id="reports" style="margin-top:32px;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-        <div class="page-title" style="font-size:1.05rem;">📄 Movimentações &amp; Relatórios</div>
-        <div style="flex:1;height:1px;background:var(--glass-border);"></div>
-      </div>
-
-      <div class="csv-row">
-        <label class="csv-btn csv-import" style="cursor:pointer;">
-          📥 Importar Extrato CSV
-          <input type="file" id="csvFileInput" accept=".csv" style="display:none"
-                 onchange="window.handleCSVImport(event)"/>
-        </label>
-        <button onclick="window.exportToCSV()" class="csv-btn csv-export">
-          📤 Exportar Mês Atual (CSV)
-        </button>
-      </div>
-
-      <div class="panel glass">
-        <div class="tx-controls">
-          <div class="filter-bar">
-            <button onclick="setF('all',this)"     class="fbt on">Todas</button>
-            <button onclick="setF('income',this)"  class="fbt">Entradas</button>
-            <button onclick="setF('expense',this)" class="fbt">Saídas</button>
+        <section id="planning">
+          <div class="sec-head">
+            <span>🎯 Gestão de Metas & Limites</span>
+            <div style="display: flex; gap: 10px;">
+              <button class="p-action-btn" onclick="window.openBudgetModal()">🧱 Definir Limite</button>
+              <button class="p-action-btn" style="background: linear-gradient(135deg, var(--teal), var(--blue)); color:#0f172a;" onclick="window.openGM()">➕ Nova Meta</button>
+            </div>
           </div>
-          <input type="text" id="txSearchInput" class="search-field"
-                 placeholder="🔍 Buscar por descrição ou categoria…"
-                 oninput="window.filterTransactionsAdvanced()"/>
+
+          <div class="two-equal">
+            <div class="panel">
+              <div class="panel-hd">
+                <span class="panel-title">🚀 Objetivos Financeiros</span>
+              </div>
+              <div id="goalList" class="goal-list-wrap">
+                </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-hd">
+                <span class="panel-title">🧱 Tetos de Gastos por Categoria</span>
+              </div>
+              <div id="budgetList" class="budget-list-wrap">
+                </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="tmModal" class="modal-bg">
+      <div class="modal-box">
+        <div class="modal-hd-title">Novo Lançamento</div>
+        <div class="form-group">
+          <label>Descrição</label>
+          <input type="text" id="fNm" class="fi-input" placeholder="Ex: Mercado, Uber, Salário" />
         </div>
-        <ul id="txList" class="tx-list"></ul>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" id="fAm" class="fi-input" placeholder="0.00" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Tipo</label>
+            <select id="fTyp" class="fi-select" onchange="window.updateModalCategories()">
+              <option value="expense">Saída (Despesa)</option>
+              <option value="income">Entrada (Receita)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Categoria</label>
+            <select id="fCt" class="fi-select">
+              </select>
+          </div>
+          <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="fDt" class="fi-input" />
+          </div>
+        </div>
+        <div class="form-row-2" style="margin-top: 6px;">
+          <label class="form-check">
+            <input type="checkbox" id="fRecurrent" /> Lançamento Fixo (Mensal)
+          </label>
+          <label class="form-check">
+            <input type="checkbox" id="fPaid" checked /> Efetivado (Pago/Recebido)
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="m-btn cancel" onclick="window.closeM('tmModal')">Cancelar</button>
+          <button class="m-btn confirm" onclick="window.saveTx()">Salvar</button>
+        </div>
       </div>
-    </section>
+    </div>
 
-  </main>
-</div>
+    <div id="gmModal" class="modal-bg">
+      <div class="modal-box">
+        <div class="modal-hd-title">Criar Objetivo Financeiro</div>
+        <div class="form-group">
+          <label>Nome da Meta</label>
+          <input type="text" id="gNm" class="fi-input" placeholder="Ex: Viagem, Reserva de Emergência" />
+        </div>
+        <div class="form-group">
+          <label>Valor Alvo (R$)</label>
+          <input type="number" id="gTg" class="fi-input" placeholder="5000.00" />
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Valor Já Guardado (R$)</label>
+            <input type="number" id="gCr" class="fi-input" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label>Prazo Estimado (Opcional)</label>
+            <input type="date" id="gDeadline" class="fi-input" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="m-btn cancel" onclick="window.closeM('gmModal')">Cancelar</button>
+          <button class="m-btn confirm" onclick="window.saveGoal()">Criar Meta</button>
+        </div>
+      </div>
+    </div>
 
-<!-- ══════════════ MODAIS ════════════════════════════════════════════════════ -->
+    <div id="fundModal" class="modal-bg">
+      <div class="modal-box">
+        <div id="fundModalTitle" class="modal-hd-title">Aporte para Meta</div>
+        <input type="hidden" id="fundTargetIndex" />
+        <div class="form-group">
+          <label>Quanto deseja guardar?</label>
+          <input type="number" id="fundAmount" class="fi-input" placeholder="0.00" step="0.01" />
+        </div>
+        <p style="font-size: 11px; color: var(--text-muted); margin-top: -6px;">*Esse valor será debitado como despesa do tipo "Investimento" no seu mês atual.</p>
+        <div class="modal-actions">
+          <button class="m-btn cancel" onclick="window.closeM('fundModal')">Cancelar</button>
+          <button class="m-btn confirm" onclick="window.confirmGoalFunds()">Confirmar Aporte</button>
+        </div>
+      </div>
+    </div>
 
-<!-- Nova Movimentação -->
-<div id="tmModal" class="modal-bg">
-  <div class="modal-box">
-    <h3>Adicionar Movimentação</h3>
-    <div class="form-group">
-      <label>Tipo</label>
-      <select id="fTyp" onchange="updateModalCategories()">
-        <option value="expense">Saída (Despesa)</option>
-        <option value="income">Entrada (Receita)</option>
-      </select>
+    <div id="budgetModal" class="modal-bg">
+      <div class="modal-box">
+        <div class="modal-hd-title">Definir Teto de Gasto</div>
+        <div class="form-group">
+          <label>Selecione a Categoria</label>
+          <select id="bCt" class="fi-select">
+            <option value="Moradia">Moradia</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Saúde">Saúde</option>
+            <option value="Lazer">Lazer</option>
+            <option value="Educação">Educação</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Limite Mensal Máximo (R$)</label>
+          <input type="number" id="bLmt" class="fi-input" placeholder="1000.00" step="0.01" />
+        </div>
+        <div class="modal-actions">
+          <button class="m-btn cancel" onclick="window.closeM('budgetModal')">Cancelar</button>
+          <button class="m-btn confirm" onclick="window.saveBudget()">Definir Limite</button>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Descrição</label>
-      <input type="text" id="fNm" placeholder="Ex: Mercado Central"/>
-    </div>
-    <div class="form-group">
-      <label>Valor (R$)</label>
-      <input type="number" id="fAm" placeholder="0,00" step="0.01" min="0"/>
-    </div>
-    <div class="form-group">
-      <label>Categoria</label>
-      <select id="fCt"></select>
-    </div>
-    <div class="form-group">
-      <label>Data</label>
-      <input type="date" id="fDt"/>
-    </div>
-    <div class="form-row">
-      <input type="checkbox" id="fRecurrent"/>
-      <label for="fRecurrent">Lançamento Fixo / Recorrente</label>
-    </div>
-    <div class="form-row">
-      <input type="checkbox" id="fPaid" checked/>
-      <label for="fPaid">Já foi pago? (desmarcado = pendente)</label>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeM('tmModal')" class="btn-cancel">Cancelar</button>
-      <button onclick="window.saveTx()"   class="btn-confirm">Salvar</button>
-    </div>
-  </div>
-</div>
 
-<!-- Nova Meta -->
-<div id="gmModal" class="modal-bg">
-  <div class="modal-box">
-    <h3>Nova Meta de Poupança</h3>
-    <div class="form-group">
-      <label>Nome da Meta</label>
-      <input type="text" id="gNm" placeholder="Ex: Viagem de Férias"/>
+    <div id="profileModal" class="modal-bg">
+      <div class="modal-box">
+        <div class="modal-hd-title">Configurações de Perfil</div>
+        <div class="profile-avatar-uploader">
+          <img id="profileModalAvatar" class="pm-avatar-preview" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" alt="Preview" />
+          <span class="pm-upload-hint">Clique na foto acima para alterar localmente</span>
+        </div>
+        <div class="form-group">
+          <label>Nome de Exibição</label>
+          <input type="text" id="pName" class="fi-input" placeholder="Seu nome" />
+        </div>
+        <div class="form-group">
+          <label>URL da Foto (Opcional)</label>
+          <input type="text" id="pPhoto" class="fi-input" placeholder="https://exemplo.com/foto.jpg" />
+        </div>
+        <div class="modal-actions">
+          <button class="m-btn cancel" onclick="window.closeM('profileModal')">Cancelar</button>
+          <button class="m-btn confirm" onclick="window.saveProfile()">Salvar Alterações</button>
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label>Valor Alvo (R$)</label>
-      <input type="number" id="gTg" placeholder="0,00"/>
-    </div>
-    <div class="form-group">
-      <label>Já guardado (R$)</label>
-      <input type="number" id="gCr" placeholder="0,00"/>
-    </div>
-    <div class="form-group">
-      <label>Data Limite</label>
-      <input type="date" id="gDeadline"/>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeM('gmModal')"  class="btn-cancel">Cancelar</button>
-      <button onclick="window.saveGoal()" class="btn-confirm">Criar Meta</button>
-    </div>
-  </div>
-</div>
 
-<!-- Aporte em Meta -->
-<div id="fundModal" class="modal-bg">
-  <div class="modal-box">
-    <h3 id="fundModalTitle">Guardar Dinheiro</h3>
-    <input type="hidden" id="fundTargetIndex"/>
-    <div class="form-group">
-      <label>Valor do Aporte (R$)</label>
-      <input type="number" id="fundAmount" placeholder="0,00"/>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeM('fundModal')" class="btn-cancel">Cancelar</button>
-      <button onclick="confirmGoalFunds()"   class="btn-confirm">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Orçamento -->
-<div id="budgetModal" class="modal-bg">
-  <div class="modal-box">
-    <h3>🛡️ Configurar Limite Mensal</h3>
-    <div class="form-group">
-      <label>Categoria</label>
-      <select id="bCt">
-        <option value="Moradia">Moradia</option>
-        <option value="Alimentação">Alimentação</option>
-        <option value="Transporte">Transporte</option>
-        <option value="Saúde">Saúde</option>
-        <option value="Lazer">Lazer</option>
-        <option value="Educação">Educação</option>
-        <option value="Outros">Outros</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Teto Máximo (R$)</label>
-      <input type="number" id="bLmt" placeholder="Ex: 500,00"/>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeM('budgetModal')" class="btn-cancel">Cancelar</button>
-      <button onclick="saveBudget()"          class="btn-confirm">Salvar Limite</button>
-    </div>
-  </div>
-</div>
-
-<!-- Perfil -->
-<div id="profileModal" class="modal-bg">
-  <div class="modal-box">
-    <h3>Configurações do Perfil</h3>
-    <div style="text-align:center;margin-bottom:20px;">
-      <img id="profileModalAvatar"
-           src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
-           alt="Avatar preview" class="avatar-lg"/>
-      <p style="font-size:.72rem;color:var(--text-muted);margin-top:4px;">Clique na foto para trocar</p>
-    </div>
-    <div class="form-group">
-      <label>Nome / Apelido</label>
-      <input type="text" id="pName" placeholder="Ex: João Silva"/>
-    </div>
-    <div class="form-group">
-      <label>URL da Foto</label>
-      <input type="text" id="pPhoto" placeholder="https://…"/>
-    </div>
-    <div class="modal-actions">
-      <button onclick="closeM('profileModal')" class="btn-cancel">Cancelar</button>
-      <button onclick="window.saveProfile()"   class="btn-confirm">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════ SCROLL NAV HELPER ════════════════════════════════════════ -->
-<script>
-window.scrollToSection = function(id, btn) {
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-};
-
-// Highlight active nav on scroll
-const _sections = ['overview','planning','reports'];
-const _navIds   = ['nav-overview','nav-planning','nav-reports'];
-window.addEventListener('scroll', () => {
-  let cur = 0;
-  _sections.forEach((id, i) => {
-    const el = document.getElementById(id);
-    if (el && el.getBoundingClientRect().top <= 120) cur = i;
-  });
-  _navIds.forEach((id, i) => {
-    const btn = document.getElementById(id);
-    if (btn) btn.classList.toggle('active', i === cur);
-  });
-}, { passive:true });
-</script>
-
-<!-- CSS alias bridges — maps old class names used by script.js to new names -->
-<style>
-/* Aliases so script.js renderGoals/renderBudgets output matches new CSS */
-.budget-item   { /* -> */ }
-.goal-item     { /* -> */ }
-.budget-hd,
-.goal-hd       { display:flex; justify-content:space-between; align-items:center;
-                 gap:8px; font-size:.85rem; font-weight:700; color:var(--text); margin-bottom:10px; }
-.budget-bar,
-.goal-bar      { width:100%; height:5px; background:rgba(255,255,255,.07); border-radius:99px;
-                 overflow:hidden; margin-bottom:10px; }
-.budget-fill,
-.goal-fill     { height:100%; border-radius:99px; transition:width .4s ease; }
-.budget-foot,
-.goal-foot     { display:flex; justify-content:space-between; align-items:center;
-                 gap:8px; font-size:.72rem; color:var(--text-muted); }
-.budget-del,
-.goal-del      { background:transparent; border:none; color:var(--text-muted);
-                 padding:3px 7px; border-radius:6px; font-size:.82rem;
-                 transition:background .15s,color .15s; cursor:pointer; }
-.budget-del:hover,
-.goal-del:hover{ color:var(--red); background:rgba(248,113,113,.1); }
-.goal-add-funds{ background:rgba(45,212,191,.1); border:1px solid rgba(45,212,191,.2);
-                 color:var(--teal); padding:4px 10px; border-radius:7px; font-size:.72rem;
-                 font-weight:700; white-space:nowrap; transition:background .15s,border-color .15s; cursor:pointer; }
-.goal-add-funds:hover { background:rgba(45,212,191,.18); border-color:rgba(45,212,191,.35); }
-.budget-item,
-.goal-item     { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09);
-                 border-radius:12px; padding:14px; margin-bottom:10px; transition:border-color .15s; }
-.budget-item:last-child,
-.goal-item:last-child { margin-bottom:0; }
-.budget-item:hover,
-.goal-item:hover { border-color:rgba(255,255,255,.17); }
-
-/* badge-fixo used by renderTxs */
-.badge-fixo    { font-size:.6rem; background:rgba(96,165,250,.12); color:var(--blue);
-                 padding:2px 6px; border-radius:5px; font-weight:700; white-space:nowrap; }
-
-/* tx-* classes used by renderTxs */
-.tx-ic         { width:34px; height:34px; border-radius:9px; display:grid;
-                 place-items:center; font-size:.9rem; flex-shrink:0; }
-.tx-info       { display:flex; flex-direction:column; flex:1; min-width:0; }
-.tx-name       { font-size:.84rem; font-weight:700; color:var(--text);
-                 display:flex; align-items:center; gap:6px; flex-wrap:wrap; overflow-wrap:anywhere; }
-.tx-meta       { font-size:.7rem; color:var(--text-muted); margin-top:2px; }
-.tx-in         { font-size:.88rem; font-weight:800; color:var(--teal); white-space:nowrap; }
-.tx-ex         { font-size:.88rem; font-weight:800; color:var(--red);  white-space:nowrap; }
-.tx-del        { background:transparent; border:none; color:var(--text-muted);
-                 padding:4px 7px; border-radius:6px; font-size:.88rem;
-                 transition:background .15s,color .15s; flex-shrink:0; margin-left:2px; cursor:pointer; }
-.tx-del:hover  { color:var(--red); background:rgba(248,113,113,.1); }
-
-/* dl-item used by renderDonut */
-.dl-item       { display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--text-soft); }
-.dl-sq         { width:7px; height:7px; border-radius:3px; flex-shrink:0; }
-.dl-pct        { margin-left:auto; color:var(--text-muted); font-weight:700; font-size:.76rem; }
-
-/* insight-item */
-.insight-item  { padding:11px 13px; border-radius:10px; background:rgba(255,255,255,.035);
-                 border:1px solid rgba(255,255,255,.08); border-left-width:3px;
-                 border-left-color:rgba(255,255,255,.15); font-size:.82rem; line-height:1.65;
-                 color:var(--text-soft); margin-bottom:8px; }
-.insight-item:last-child { margin-bottom:0; }
-.insight-item b { color:var(--text); }
-
-/* empty-state */
-.empty-state   { font-size:.82rem; color:var(--text-muted); text-align:center; padding:20px 0; font-style:italic; }
-
-/* cal aliases */
-.cal-day       { }
-.cal-indicators{ display:flex; gap:3px; flex-wrap:wrap; margin-top:4px; }
-.cal-dot       { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
-.cal-tooltip   { display:none; position:absolute; bottom:calc(100% + 6px); left:50%;
-                 transform:translateX(-50%); background:rgba(8,14,26,.96);
-                 border:1px solid rgba(255,255,255,.18); backdrop-filter:blur(14px);
-                 border-radius:10px; padding:10px 12px; width:175px;
-                 box-shadow:0 10px 30px rgba(0,0,0,.5); z-index:60; pointer-events:none; }
-.cal-day:hover .cal-tooltip { display:block; }
-.ct-title      { font-size:.7rem; font-weight:700; color:var(--text); display:block; margin-bottom:5px; }
-.ct-list       { list-style:none; font-size:.68rem; display:flex; flex-direction:column; gap:3px; }
-.ct-item.inc   { color:var(--teal); }
-.ct-item.exp   { color:var(--red); }
-
-/* goal-pct */
-.goal-pct      { font-weight:700; font-size:.84rem; }
-.goal-name     { min-width:0; overflow-wrap:anywhere; }
-.goal-actions  { }
-
-/* panel-header used in reports tab */
-.panel-header  { display:flex; justify-content:space-between; align-items:center;
-                 margin-bottom:14px; flex-wrap:wrap; gap:10px; }
-.panel-header h3 { font-size:.92rem; font-weight:800; color:var(--text); margin-bottom:0; }
-
-/* filter tabs in reports */
-.filter-tabs   { display:flex; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
-                 padding:3px; border-radius:10px; gap:2px; }
-.tf            { background:transparent; border:none; color:var(--text-muted);
-                 padding:6px 14px; font-size:.77rem; font-weight:700; border-radius:8px; transition:all .15s; }
-.tf:hover      { color:var(--text-soft); }
-.tf.on         { background:rgba(255,255,255,.1); color:var(--text); }
-
-@media(max-width:768px) {
-  .planning-grid { grid-template-columns:1fr !important; }
-}
-</style>
-
-<script type="module" src="script.js"></script>
-</body>
+    <script type="module" src="script.js"></script>
+  </body>
 </html>
