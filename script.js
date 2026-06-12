@@ -167,10 +167,15 @@ function brl(n) {
 // Apresenta notificações temporárias na interface de forma elegante
 function showToast(msg) {
   const toast = document.createElement("div");
-  toast.className = "toast";
+  // detect type from emoji prefix
+  let type = "info";
+  if (msg.startsWith("✅") || msg.includes("sucesso")) type = "success";
+  else if (msg.startsWith("⚠️") || msg.includes("Simulação") || msg.includes("repetido")) type = "warn";
+  else if (msg.startsWith("❌") || msg.includes("Erro")) type = "error";
+  toast.className = `toast toast-${type}`;
   toast.innerText = msg;
   document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  setTimeout(() => toast.remove(), 3500);
 }
 
 function mth() {
@@ -824,6 +829,8 @@ function render() {
   renderInsights();
   renderTxs();
   renderCalendar();
+  renderHealthScore();
+  renderSmartKpis();
 }
 
 window.switchTab = function (tabId) {
@@ -1041,7 +1048,10 @@ window.togglePlanningMode = function () {
       btn.textContent = "🛠️ Modo Planejamento: ON";
       btn.style.background = "rgba(245,158,11,0.2)";
     }
-    if (workspace) workspace.style.border = "2px dashed var(--amber)";
+    if (workspace) {
+      workspace.style.border = "2px dashed var(--amber)";
+      workspace.classList.add("planning-active-border");
+    }
     showToast(
       "Modo Planejamento ativado. Simule sem alterar seus dados reais.",
     );
@@ -1053,7 +1063,10 @@ window.togglePlanningMode = function () {
       btn.textContent = "🛠️ Modo Planejamento: OFF";
       btn.style.background = "transparent";
     }
-    if (workspace) workspace.style.border = "none";
+    if (workspace) {
+      workspace.style.border = "none";
+      workspace.classList.remove("planning-active-border");
+    }
     showToast("Simulação encerrada. Dados reais restaurados.");
     render();
   }
@@ -1300,3 +1313,175 @@ window.scrollToSection = function (id, btn) {
     btn.classList.add("active");
   }
 };
+
+
+// ─── Score de Saúde Financeira ────────────────────────────────────────
+// Calculado automaticamente a cada render() com base nos dados reais
+function renderHealthScore() {
+  const t = mth();
+  const hoje = new Date();
+  const inc  = t.filter(x => x.type === "income").reduce((s,x) => s+x.amount, 0);
+  const exp  = t.filter(x => x.type === "expense" && !x.name.startsWith("Aporte:")).reduce((s,x) => s+x.amount, 0);
+  const inv  = t.filter(x => x.cat === "Investimento" || x.name.startsWith("Aporte:")).reduce((s,x) => s+x.amount, 0);
+  const bal  = inc - exp - inv;
+
+  // Sem dados ainda
+  const fillEl   = document.getElementById("hsTrackFill");
+  const scoreEl  = document.getElementById("hsScoreValue");
+  const gradeEl  = document.getElementById("hsScoreGrade");
+  const tipEl    = document.getElementById("hsTip");
+  if (!fillEl || !scoreEl) return;
+
+  if (inc === 0) {
+    scoreEl.textContent = "—";
+    gradeEl.textContent = "Sem dados";
+    gradeEl.style.color = "var(--text-muted)";
+    fillEl.style.width = "0%";
+    if (tipEl) tipEl.textContent = "Registre entradas para calcular seu score.";
+    return;
+  }
+
+  let score = 0;
+  let tips = [];
+
+  // 1. Taxa de poupança (0–30 pts): ≥20% = 30, proporcional abaixo
+  const poupado = inv + (bal > 0 ? bal : 0);
+  const savRate = inc > 0 ? (poupado / inc) * 100 : 0;
+  const ptsPoup = Math.min(30, Math.round((savRate / 20) * 30));
+  score += ptsPoup;
+  if (savRate < 10) tips.push("Tente poupar pelo menos 10% da renda.");
+  else if (savRate < 20) tips.push("Chegando lá! Meta: 20% de poupança.");
+
+  // 2. Saldo positivo (0–20 pts)
+  if (bal > 0) {
+    const ratio = Math.min(1, bal / inc);
+    score += Math.round(ratio * 20);
+  } else {
+    tips.push("Saldo negativo — revise despesas fixas.");
+  }
+
+  // 3. Limites de gastos respeitados (0–20 pts)
+  const totalCats = Object.keys(budgets).length;
+  if (totalCats > 0) {
+    const expArr = t.filter(x => x.type === "expense");
+    let ok = 0;
+    Object.keys(budgets).forEach(cat => {
+      const spent = expArr.filter(x => x.cat === cat).reduce((s,x) => s+x.amount, 0);
+      if (spent <= budgets[cat]) ok++;
+    });
+    score += Math.round((ok / totalCats) * 20);
+    if (ok < totalCats) tips.push(`${totalCats - ok} limite(s) de gasto excedido(s).`);
+  } else {
+    score += 10; // neutro — sem limites definidos
+  }
+
+  // 4. Diversidade de categorias de despesa (0–10 pts)
+  const cats = new Set(t.filter(x => x.type === "expense").map(x => x.cat));
+  score += Math.min(10, cats.size * 2);
+
+  // 5. Metas ativas com progresso (0–20 pts)
+  if (goals.length > 0) {
+    const avgPct = goals.reduce((s,g) => s + Math.min(100, (g.current/g.target)*100), 0) / goals.length;
+    score += Math.round((avgPct / 100) * 20);
+    if (avgPct < 30) tips.push("Suas metas precisam de mais aportes.");
+  } else {
+    score += 10; // neutro
+    tips.push("Crie metas financeiras para melhorar seu score.");
+  }
+
+  score = Math.min(100, Math.max(0, score));
+
+  // Grade
+  let grade, color;
+  if (score >= 85)      { grade = "Excelente 🏆"; color = "#4ade80"; }
+  else if (score >= 70) { grade = "Ótimo ✨";      color = "#34d399"; }
+  else if (score >= 55) { grade = "Bom 👍";         color = "#60a5fa"; }
+  else if (score >= 40) { grade = "Regular ⚠️";    color = "#fbbf24"; }
+  else                  { grade = "Atenção 🚨";     color = "#f87171"; }
+
+  scoreEl.textContent = score;
+  scoreEl.style.color = color;
+  gradeEl.textContent = grade;
+  gradeEl.style.color = color;
+  fillEl.style.width  = score + "%";
+  fillEl.style.background = score >= 70
+    ? "linear-gradient(90deg, var(--teal), var(--green))"
+    : score >= 45
+    ? "linear-gradient(90deg, var(--amber), #f59e0b)"
+    : "linear-gradient(90deg, var(--red), #fb923c)";
+
+  if (tipEl) tipEl.textContent = tips[0] || "Finanças equilibradas. Continue assim!";
+}
+
+
+// ─── KPI Strip Inteligente ────────────────────────────────────────────
+// Calcula e exibe 4 indicadores derivados automaticamente dos dados
+function renderSmartKpis() {
+  const el = document.getElementById("smartKpiStrip");
+  if (!el) return;
+
+  const t = mth();
+  const hoje = new Date();
+  const totalDias = new Date(cy, cm+1, 0).getDate();
+  const diasPassados = (cm === hoje.getMonth() && cy === hoje.getFullYear())
+    ? hoje.getDate() : totalDias;
+
+  const inc = t.filter(x => x.type === "income").reduce((s,x) => s+x.amount, 0);
+  const exp = t.filter(x => x.type === "expense" && !x.name.startsWith("Aporte:")).reduce((s,x) => s+x.amount, 0);
+  const inv = t.filter(x => x.cat === "Investimento" || x.name.startsWith("Aporte:")).reduce((s,x) => s+x.amount, 0);
+
+  // KPI 1: Gasto médio por dia
+  const gastoDia = diasPassados > 0 ? exp / diasPassados : 0;
+  // KPI 2: Projeção de gastos no mês
+  const projecao = gastoDia * totalDias;
+  // KPI 3: Comprometimento de renda (fixos/receita)
+  const fixos = t.filter(x => x.type === "expense" && x.recurrent).reduce((s,x) => s+x.amount, 0);
+  const comprPct = inc > 0 ? Math.round((fixos / inc) * 100) : 0;
+  // KPI 4: Dias até zerar o saldo (burn rate)
+  const saldoAtual = inc - exp - inv;
+  const diasAteZero = gastoDia > 0 && saldoAtual > 0
+    ? Math.floor(saldoAtual / gastoDia) : null;
+
+  const kpis = [
+    {
+      icon: "📆",
+      label: "Gasto / dia",
+      value: brl(gastoDia),
+      sub: `${diasPassados} dias analisados`,
+      color: gastoDia > (inc / totalDias) ? "var(--red)" : "var(--green)",
+    },
+    {
+      icon: "🔮",
+      label: "Projeção mensal",
+      value: brl(projecao),
+      sub: projecao > inc ? "Acima da receita ⚠️" : "Dentro do orçamento ✓",
+      color: projecao > inc ? "var(--amber)" : "var(--teal)",
+    },
+    {
+      icon: "🔒",
+      label: "Renda comprometida",
+      value: comprPct + "%",
+      sub: fixos > 0 ? brl(fixos) + " em fixos" : "Sem despesas fixas",
+      color: comprPct > 60 ? "var(--red)" : comprPct > 40 ? "var(--amber)" : "var(--green)",
+    },
+    {
+      icon: "⏳",
+      label: "Reserva disponível",
+      value: diasAteZero !== null ? diasAteZero + " dias" : "—",
+      sub: diasAteZero !== null ? "ao ritmo atual de gastos" : "Sem saldo positivo",
+      color: diasAteZero !== null && diasAteZero < 10 ? "var(--red)"
+           : diasAteZero !== null && diasAteZero < 20 ? "var(--amber)"
+           : "var(--teal)",
+    },
+  ];
+
+  el.innerHTML = kpis.map(k => `
+    <div class="skpi-card">
+      <div class="skpi-icon">${k.icon}</div>
+      <div class="skpi-body">
+        <div class="skpi-label">${k.label}</div>
+        <div class="skpi-value privacy-blur" style="color:${k.color}">${k.value}</div>
+        <div class="skpi-sub">${k.sub}</div>
+      </div>
+    </div>`).join("");
+}
