@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Finanças Pro — Dashboard</title>
+    <title>Finanças Pro — Dashboard Moderno</title>
     <link rel="stylesheet" href="style.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
@@ -13,35 +13,51 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
-    
-<div id="authContainer" class="auth-overlay-container" style="display: flex">
-  <div class="auth-card">
-    <div class="auth-header">
-      <div class="auth-logo">Finanças Pro</div>
-      <p class="auth-subtitle">Entre ou crie uma conta para sincronizar seus dados na nuvem</p>
+    <div
+      id="authContainer"
+      class="auth-overlay-container"
+      style="display: flex"
+    >
+      <div class="auth-card">
+        <div class="auth-header">
+          <div class="auth-logo">Finanças Pro</div>
+          <p class="auth-subtitle">
+            Entre ou crie uma conta para sincronizar seus dados na nuvem
+          </p>
+        </div>
+        <div class="form-group">
+          <input
+            type="email"
+            id="authEmail"
+            class="fi-input"
+            placeholder="Seu e-mail"
+          />
+        </div>
+        <div class="form-group">
+          <input
+            type="password"
+            id="authPassword"
+            class="fi-input"
+            placeholder="Senha"
+          />
+        </div>
+        <button id="btnPrimaryAuth" class="auth-btn-primary">Entrar</button>
+        <div class="auth-separator">ou</div>
+        <button id="btnGoogleAuth" class="auth-btn-google">
+          <img
+            src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png"
+            alt="Google"
+          />
+          Entrar com o Google
+        </button>
+        <p class="auth-toggle-hint">
+          Não tem uma conta?
+          <button id="btnToggleAuth" class="auth-toggle-link">
+            Criar Conta
+          </button>
+        </p>
+      </div>
     </div>
-    <div class="form-group">
-      <input type="email" id="authEmail" class="fi-input" placeholder="Seu e-mail" />
-    </div>
-    <div class="form-group">
-      <input type="password" id="authPassword" class="fi-input" placeholder="Senha" />
-    </div>
-    <button id="btnPrimaryAuth" class="auth-btn-primary">Entrar</button>
-    
-    <div class="auth-separator">ou</div>
-    
-    <button id="btnGoogleAuth" class="auth-btn-google">
-      <img src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" alt="Google" />
-      Entrar com o Google
-    </button>
-    
-    <p class="auth-toggle-hint">
-      Não tem uma conta? 
-      <button id="btnToggleAuth" class="auth-toggle-link">Criar Conta</button>
-    </p>
-  </div>
-</div>
-</div>
 
     <aside class="sidebar">
       <div class="sb-head">
@@ -50,87 +66,144 @@
 
       <div class="user-profile-menu">
         <div id="userMenuTrigger" class="user-trigger">
-          <img id="userAvatar" class="user-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" alt="Avatar" />
+          <img
+            id="userAvatar"
+            class="user-avatar-img"
+            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop"
+            alt="Avatar"
+          />
           <div class="user-meta-info">
             <span id="userDisplay" class="user-name-label">Carregando...</span>
             <span class="user-role-label">Premium</span>
           </div>
         </div>
         <div id="userDropdown" class="user-dropdown-box">
-          <button class="ud-item" onclick="window.openProfileModal()">👤 Editar Perfil</button>
-          <button id="btnLogout" class="ud-item logout-btn">🚪 Sair da Conta</button>
+          <button class="ud-item" onclick="window.openProfileModal()">
+            👤 Editar Perfil
+          </button>
+          <button id="btnLogout" class="ud-item logout-btn">
+            🚪 Sair da Conta
+          </button>
         </div>
       </div>
 
       <nav class="sb-nav">
-        <button class="sb-item active" onclick="window.scrollToSection('dashboard', this)">📊 Dashboard</button>
-        <button class="sb-item" onclick="window.scrollToSection('transactions-section', this)">💸 Movimentações</button>
-        <button class="sb-item" onclick="window.scrollToSection('planning', this)">🎯 Metas e Tetos</button>
+        <button
+          class="sb-item active"
+          onclick="window.scrollToSection('dashboard', this)"
+        >
+          📊 Dashboard
+        </button>
+        <button
+          class="sb-item"
+          onclick="window.scrollToSection('transactions-section', this)"
+        >
+          💸 Movimentações
+        </button>
+        <button
+          class="sb-item"
+          onclick="window.scrollToSection('planning', this)"
+        >
+          🎯 Metas e Tetos
+        </button>
       </nav>
     </aside>
 
     <div class="main-content">
-      
       <div class="top-actions-bar">
-        <button id="btnPlanning" class="planning-pill-btn" onclick="window.togglePlanningMode()">🛠️ Modo Planejamento: OFF</button>
-        <button id="btnPrivacy" class="action-circle-btn" onclick="window.togglePrivacyMode()">👁️</button>
-        <button class="action-circle-btn" onclick="window.exportToCSV()">📥</button>
-        <label class="action-circle-btn" style="cursor:pointer;">
+        <span
+          id="syncStatusIndicator"
+          style="
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-right: auto;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          "
+          >Conectando...</span
+        >
+        <button
+          id="btnPlanning"
+          class="planning-pill-btn"
+          onclick="window.togglePlanningMode()"
+        >
+          🛠️ Modo Planejamento: OFF
+        </button>
+        <button
+          id="btnPrivacy"
+          class="action-circle-btn"
+          onclick="window.togglePrivacyMode()"
+        >
+          👁️
+        </button>
+        <button class="action-circle-btn" onclick="window.exportToCSV()">
+          📥
+        </button>
+        <label class="action-circle-btn" style="cursor: pointer">
           📤
-          <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="window.handleCSVImport(event)" />
+          <input
+            type="file"
+            id="csvFileInput"
+            accept=".csv"
+            style="display: none"
+            onchange="window.handleCSVImport(event)"
+          />
         </label>
       </div>
 
       <main>
         <section id="dashboard">
-          
           <div class="metrics-grid">
-            <div class="mcard inc-card">
+            <div class="mcard inc-card stagger-item">
               <div class="mcard-hd">Receitas</div>
               <div id="vInc" class="mcard-val">R$ 0,00</div>
               <div id="vIncC" class="mcard-sub">0 entradas</div>
             </div>
-            <div class="mcard exp-card">
+            <div class="mcard exp-card stagger-item">
               <div class="mcard-hd">Despesas</div>
               <div id="vExp" class="mcard-val">R$ 0,00</div>
               <div id="vExpC" class="mcard-sub">0 saídas</div>
             </div>
-            <div class="mcard inv-card">
+            <div class="mcard inv-card stagger-item">
               <div class="mcard-hd">Investido/Poupado</div>
               <div id="vInv" class="mcard-val">R$ 0,00</div>
               <div id="vSavingsRate" class="mcard-sub">0% de taxa</div>
             </div>
-            <div class="mcard bal-card">
+            <div class="mcard bal-card stagger-item">
               <div class="mcard-hd">Saldo Mensal</div>
               <div id="vBal" class="mcard-val">R$ 0,00</div>
               <div id="vBalStatus" class="mcard-sub">Calculando fluxo...</div>
             </div>
           </div>
 
-          <div id="savingsRateBanner" class="savings-banner">
+          <div id="savingsRateBanner" class="savings-banner stagger-item">
             <div class="sb-left">
               <span class="sb-title">Sua Taxa de Poupança</span>
-              <span class="sb-desc">A porcentagem ideal recomendada de aportes é acima de 20% das suas receitas.</span>
+              <span class="sb-desc"
+                >A porcentagem ideal recomendada de aportes é acima de 20% das
+                suas receitas.</span
+              >
             </div>
             <div id="vSavingsRateBig" class="sb-right-rate">0%</div>
           </div>
 
-          <!-- Score de Saúde Financeira -->
-          <div id="healthScoreBar" class="health-score-bar">
+          <div id="healthScoreBar" class="health-score-bar stagger-item">
             <div class="hs-left">
               <span class="hs-label">Score de Saúde Financeira</span>
-              <div class="hs-track"><div id="hsTrackFill" class="hs-fill"></div></div>
+              <div class="hs-track">
+                <div id="hsTrackFill" class="hs-fill"></div>
+              </div>
             </div>
             <div id="hsScoreValue" class="hs-score">—</div>
             <div id="hsScoreGrade" class="hs-grade">—</div>
             <div id="hsTip" class="hs-tip"></div>
           </div>
 
-          <!-- KPIs Inteligentes -->
-          <div id="smartKpiStrip" class="smart-kpi-strip"></div>
+          <div id="smartKpiStrip" class="smart-kpi-strip stagger-item"></div>
 
           <div class="two-equal">
-            <div class="panel">
+            <div class="panel stagger-item">
               <div class="panel-hd">
                 <span class="panel-title">📅 Agenda de Fluxo</span>
                 <div class="month-nav-box">
@@ -140,7 +213,8 @@
                 </div>
               </div>
               <div class="cal-weekdays">
-                <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span
+                ><span>Qui</span><span>Sex</span><span>Sáb</span>
               </div>
               <div id="calendarGrid" class="cal-grid"></div>
             </div>
@@ -148,22 +222,30 @@
             <div class="panel">
               <div class="panel-hd">
                 <span class="panel-title">🍕 Distribuição de Gastos</span>
-                <button id="btnToggleChart" class="chart-mode-btn" onclick="window.toggleChartMode()">🔄 Ver 50/30/20</button>
+                <button
+                  id="btnToggleChart"
+                  class="chart-mode-btn"
+                  onclick="window.toggleChartMode()"
+                >
+                  🔄 Ver 50/30/20
+                </button>
               </div>
               <div class="donut-area">
                 <div class="chart-wrap">
-                  <canvas id="donutC" width="180" height="180"></canvas>
+                  <canvas id="donutC"></canvas>
                 </div>
                 <div id="donutLeg" class="donut-leg"></div>
               </div>
             </div>
           </div>
 
-          <div class="panel" style="margin-bottom: 32px;">
+          <div class="panel" style="margin-bottom: 32px">
             <div class="panel-hd">
-              <span class="panel-title">📊 Histórico de Tendência (6 meses)</span>
+              <span class="panel-title"
+                >📊 Histórico de Tendência (6 meses)</span
+              >
             </div>
-            <div style="height: 220px; width: 100%;">
+            <div class="trend-chart-container">
               <canvas id="trendC"></canvas>
             </div>
           </div>
@@ -172,31 +254,45 @@
         <section id="transactions-section">
           <div class="sec-head">
             <span>💸 Histórico de Movimentações</span>
-            <button class="p-action-btn" onclick="window.openTM()">➕ Novo Lançamento</button>
+            <button class="p-action-btn" onclick="window.openTM()">
+              ➕ Novo Lançamento
+            </button>
           </div>
 
           <div class="two-equal">
             <div class="panel">
               <div class="panel-hd">
                 <div class="tx-filters">
-                  <button class="tf on" onclick="window.setF('all', this)">Todas</button>
-                  <button class="tf" onclick="window.setF('income', this)">Entradas</button>
-                  <button class="tf" onclick="window.setF('expense', this)">Saídas</button>
+                  <button class="tf on" onclick="window.setF('all', this)">
+                    Todas
+                  </button>
+                  <button class="tf" onclick="window.setF('income', this)">
+                    Entradas
+                  </button>
+                  <button class="tf" onclick="window.setF('expense', this)">
+                    Saídas
+                  </button>
                 </div>
               </div>
               <div class="search-container">
-                <input type="text" id="txSearchInput" class="search-input-field" placeholder="🔎 Buscar por descrição..." oninput="window.filterTransactionsAdvanced()" />
+                <input
+                  type="text"
+                  id="txSearchInput"
+                  class="search-input-field"
+                  placeholder="🔎 Buscar por descrição..."
+                  oninput="window.filterTransactionsAdvanced()"
+                />
               </div>
-              <ul id="txList" class="tx-list-wrap">
-                </ul>
+              <ul id="txList" class="tx-list-wrap"></ul>
             </div>
 
             <div class="panel">
               <div class="panel-hd">
-                <span class="panel-title">💡 Insights & Recomendações Automáticas</span>
+                <span class="panel-title"
+                  >💡 Insights & Recomendações Automáticas</span
+                >
               </div>
-              <div id="insightsList" class="insights-wrap">
-                </div>
+              <div id="insightsList" class="insights-wrap"></div>
             </div>
           </div>
         </section>
@@ -204,9 +300,20 @@
         <section id="planning">
           <div class="sec-head">
             <span>🎯 Gestão de Metas & Limites</span>
-            <div style="display: flex; gap: 10px;">
-              <button class="p-action-btn" onclick="window.openBudgetModal()">🧱 Definir Limite</button>
-              <button class="p-action-btn" style="background: linear-gradient(135deg, var(--teal), var(--blue)); color:#0f172a;" onclick="window.openGM()">➕ Nova Meta</button>
+            <div style="display: flex; gap: 10px">
+              <button class="p-action-btn" onclick="window.openBudgetModal()">
+                🧱 Definir Limite
+              </button>
+              <button
+                class="p-action-btn"
+                style="
+                  background: linear-gradient(135deg, var(--teal), var(--blue));
+                  color: #0f172a;
+                "
+                onclick="window.openGM()"
+              >
+                ➕ Nova Meta
+              </button>
             </div>
           </div>
 
@@ -215,16 +322,16 @@
               <div class="panel-hd">
                 <span class="panel-title">🚀 Objetivos Financeiros</span>
               </div>
-              <div id="goalList" class="goal-list-wrap">
-                </div>
+              <div id="goalList" class="goal-list-wrap"></div>
             </div>
 
             <div class="panel">
               <div class="panel-hd">
-                <span class="panel-title">🧱 Tetos de Gastos por Categoria</span>
+                <span class="panel-title"
+                  >🧱 Tetos de Gastos por Categoria</span
+                >
               </div>
-              <div id="budgetList" class="budget-list-wrap">
-                </div>
+              <div id="budgetList" class="budget-list-wrap"></div>
             </div>
           </div>
         </section>
@@ -236,16 +343,31 @@
         <div class="modal-hd-title">Novo Lançamento</div>
         <div class="form-group">
           <label>Descrição</label>
-          <input type="text" id="fNm" class="fi-input" placeholder="Ex: Mercado, Uber, Salário" />
+          <input
+            type="text"
+            id="fNm"
+            class="fi-input"
+            placeholder="Ex: Mercado, Uber, Salário"
+          />
         </div>
         <div class="form-row-2">
           <div class="form-group">
             <label>Valor (R$)</label>
-            <input type="number" id="fAm" class="fi-input" placeholder="0.00" step="0.01" />
+            <input
+              type="number"
+              id="fAm"
+              class="fi-input"
+              placeholder="0.00"
+              step="0.01"
+            />
           </div>
           <div class="form-group">
             <label>Tipo</label>
-            <select id="fTyp" class="fi-select" onchange="window.updateModalCategories()">
+            <select
+              id="fTyp"
+              class="fi-select"
+              onchange="window.updateModalCategories()"
+            >
               <option value="expense">Saída (Despesa)</option>
               <option value="income">Entrada (Receita)</option>
             </select>
@@ -254,78 +376,107 @@
         <div class="form-row-2">
           <div class="form-group">
             <label>Categoria</label>
-            <select id="fCt" class="fi-select">
-              </select>
+            <select id="fCt" class="fi-select"></select>
           </div>
           <div class="form-group">
             <label>Data</label>
             <input type="date" id="fDt" class="fi-input" />
           </div>
         </div>
-        <div class="form-row-2" style="margin-top: 6px;">
+        <div class="form-row-2" style="margin-top: 6px">
           <label class="form-check">
             <input type="checkbox" id="fRecurrent" /> Lançamento Fixo (Mensal)
           </label>
           <label class="form-check">
-            <input type="checkbox" id="fPaid" checked /> Efetivado (Pago/Recebido)
+            <input type="checkbox" id="fPaid" checked /> Efetivado
+            (Pago/Recebido)
           </label>
         </div>
         <div class="modal-actions">
-          <button class="m-btn cancel" onclick="window.closeM('tmModal')">Cancelar</button>
-          <button class="m-btn confirm" onclick="window.saveTx()">Salvar</button>
+          <button class="m-btn cancel" onclick="window.closeM('tmModal')">
+            Cancelar
+          </button>
+          <button class="m-btn confirm" onclick="window.saveTx()">
+            Salvar
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- Modal de Metas (GM) -->
     <div id="gmModal" class="modal-bg">
       <div class="modal-box">
-        <div class="modal-hd-title">Criar Objetivo Financeiro</div>
+        <div class="modal-hd-title">Nova Meta Financeira</div>
         <div class="form-group">
           <label>Nome da Meta</label>
-          <input type="text" id="gNm" class="fi-input" placeholder="Ex: Viagem, Reserva de Emergência" />
-        </div>
-        <div class="form-group">
-          <label>Valor Alvo (R$)</label>
-          <input type="number" id="gTg" class="fi-input" placeholder="5000.00" />
+          <input
+            type="text"
+            id="gNm"
+            class="fi-input"
+            placeholder="Ex: Viagem, Carro Novo"
+          />
         </div>
         <div class="form-row-2">
           <div class="form-group">
-            <label>Valor Já Guardado (R$)</label>
-            <input type="number" id="gCr" class="fi-input" placeholder="0.00" />
+            <label>Valor Alvo (R$)</label>
+            <input type="number" id="gTg" class="fi-input" placeholder="0.00" />
           </div>
           <div class="form-group">
-            <label>Prazo Estimado (Opcional)</label>
-            <input type="date" id="gDeadline" class="fi-input" />
+            <label>Já Tenho (R$)</label>
+            <input type="number" id="gCr" class="fi-input" placeholder="0.00" />
           </div>
         </div>
+        <div class="form-group">
+          <label>Prazo (Opcional)</label>
+          <input type="date" id="gDeadline" class="fi-input" />
+        </div>
         <div class="modal-actions">
-          <button class="m-btn cancel" onclick="window.closeM('gmModal')">Cancelar</button>
-          <button class="m-btn confirm" onclick="window.saveGoal()">Criar Meta</button>
+          <button class="m-btn cancel" onclick="window.closeM('gmModal')">
+            Cancelar
+          </button>
+          <button class="m-btn confirm" onclick="window.saveGoal()">
+            Criar Meta
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- Modal de Aporte (Fund) -->
     <div id="fundModal" class="modal-bg">
       <div class="modal-box">
         <div id="fundModalTitle" class="modal-hd-title">Aporte para Meta</div>
         <input type="hidden" id="fundTargetIndex" />
         <div class="form-group">
-          <label>Quanto deseja guardar?</label>
-          <input type="number" id="fundAmount" class="fi-input" placeholder="0.00" step="0.01" />
+          <label>Quanto deseja poupar?</label>
+          <input
+            type="number"
+            id="fundAmount"
+            class="fi-input"
+            placeholder="0.00"
+          />
         </div>
-        <p style="font-size: 11px; color: var(--text-muted); margin-top: -6px;">*Esse valor será debitado como despesa do tipo "Investimento" no seu mês atual.</p>
+        <p
+          style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px"
+        >
+          * Isso criará uma saída automática na categoria "Investimento".
+        </p>
         <div class="modal-actions">
-          <button class="m-btn cancel" onclick="window.closeM('fundModal')">Cancelar</button>
-          <button class="m-btn confirm" onclick="window.confirmGoalFunds()">Confirmar Aporte</button>
+          <button class="m-btn cancel" onclick="window.closeM('fundModal')">
+            Cancelar
+          </button>
+          <button class="m-btn confirm" onclick="window.confirmGoalFunds()">
+            Confirmar Aporte
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- Modal de Limite (Budget) -->
     <div id="budgetModal" class="modal-bg">
       <div class="modal-box">
-        <div class="modal-hd-title">Definir Teto de Gasto</div>
+        <div class="modal-hd-title">Definir Teto de Gastos</div>
         <div class="form-group">
-          <label>Selecione a Categoria</label>
+          <label>Categoria</label>
           <select id="bCt" class="fi-select">
             <option value="Moradia">Moradia</option>
             <option value="Alimentação">Alimentação</option>
@@ -337,34 +488,53 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Limite Mensal Máximo (R$)</label>
-          <input type="number" id="bLmt" class="fi-input" placeholder="1000.00" step="0.01" />
+          <label>Limite Mensal (R$)</label>
+          <input type="number" id="bLmt" class="fi-input" placeholder="0.00" />
         </div>
         <div class="modal-actions">
-          <button class="m-btn cancel" onclick="window.closeM('budgetModal')">Cancelar</button>
-          <button class="m-btn confirm" onclick="window.saveBudget()">Definir Limite</button>
+          <button class="m-btn cancel" onclick="window.closeM('budgetModal')">
+            Cancelar
+          </button>
+          <button class="m-btn confirm" onclick="window.saveBudget()">
+            Salvar Limite
+          </button>
         </div>
       </div>
     </div>
 
+    <!-- Modal de Perfil -->
     <div id="profileModal" class="modal-bg">
       <div class="modal-box">
-        <div class="modal-hd-title">Configurações de Perfil</div>
+        <div class="modal-hd-title">Editar Perfil</div>
         <div class="profile-avatar-uploader">
-          <img id="profileModalAvatar" class="pm-avatar-preview" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" alt="Preview" />
-          <span class="pm-upload-hint">Clique na foto acima para alterar localmente</span>
+          <img
+            id="profileModalAvatar"
+            class="pm-avatar-preview"
+            src=""
+            alt="Avatar"
+          />
+          <span class="pm-upload-hint">Clique na imagem para trocar</span>
         </div>
         <div class="form-group">
           <label>Nome de Exibição</label>
-          <input type="text" id="pName" class="fi-input" placeholder="Seu nome" />
+          <input type="text" id="pName" class="fi-input" />
         </div>
         <div class="form-group">
-          <label>URL da Foto (Opcional)</label>
-          <input type="text" id="pPhoto" class="fi-input" placeholder="https://exemplo.com/foto.jpg" />
+          <label>URL da Foto (opcional)</label>
+          <input
+            type="text"
+            id="pPhoto"
+            class="fi-input"
+            placeholder="https://..."
+          />
         </div>
         <div class="modal-actions">
-          <button class="m-btn cancel" onclick="window.closeM('profileModal')">Cancelar</button>
-          <button class="m-btn confirm" onclick="window.saveProfile()">Salvar Alterações</button>
+          <button class="m-btn cancel" onclick="window.closeM('profileModal')">
+            Cancelar
+          </button>
+          <button class="m-btn confirm" onclick="window.saveProfile()">
+            Salvar Alterações
+          </button>
         </div>
       </div>
     </div>

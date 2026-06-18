@@ -8,6 +8,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
   getFirestore,
@@ -134,25 +135,53 @@ async function saveDataToCloud() {
 }
 
 async function loadDataFromCloud(user) {
+  const mainContent = document.querySelector(".main-content");
+  const syncStatus = document.getElementById("syncStatusIndicator");
   try {
-    const docSnap = await getDoc(doc(db, "users_data", user.uid));
+    if (mainContent) mainContent.classList.add("loading-state");
+    renderTxs(true); // Dispara o skeleton imediatamente
+
+    const userDocRef = doc(db, "users_data", user.uid);
+    const docSnap = await getDoc(userDocRef);
+    
     if (docSnap.exists()) {
       const data = docSnap.data();
-      txs = data.txs || [];
+      txs = (data.txs || []).map(t => ({ ...t, amount: Number(t.amount) }));
       goals = data.goals || [];
       budgets = data.budgets || {};
+      console.log(`📦 Firebase: ${txs.length} transações carregadas.`);
     } else {
-      txs = [];
+      console.warn("Usuário novo. Tentando migração inicial...");
+      // Fallback para o seu server.js (Node.js) caso o Firebase esteja vazio
+      try {
+        const response = await fetch('http://localhost:3000/api/transactions');
+        if (!response.ok) throw new Error("Servidor local retornou erro.");
+        const localData = await response.json();
+        if (localData.success) {
+          txs = localData.data.map(t => ({ ...t, amount: Number(t.amount) }));
+          
+          // PERSISTÊNCIA NA NUVEM: Salva os dados migrados no Firestore
+          await setDoc(userDocRef, {
+            txs: txs,
+            goals: [],
+            budgets: {}
+          });
+        }
+      } catch (localErr) {
+        txs = [];
+        console.log("Servidor local offline, iniciando dashboard vazio.");
+      }
       goals = [];
       budgets = {};
-      console.warn("Nenhum dado encontrado no Firestore para este usuário.");
     }
-    render();
   } catch (e) {
     console.error("Erro ao carregar do Firestore:", e);
+  } finally {
+    if (mainContent) mainContent.classList.remove("loading-state");
+    if (syncStatus) syncStatus.textContent = "Sincronizado Cloud";
+    render(); // Garante que a interface seja desenhada independente do resultado
   }
 }
-
 
 function brl(n) {
   return (
@@ -180,6 +209,7 @@ function showToast(msg) {
 
 function mth() {
   return txs.filter((t) => {
+    if (!t.date) return false;
     const d = new Date(t.date + "T12:00");
     if (t.recurrent) {
       return (
@@ -286,7 +316,7 @@ function renderBudgets() {
       if (pct >= 100) color = "#ef4444";
 
       html += `
-        <div class="budget-item">
+        <div class="budget-item stagger-item">
           <div class="budget-hd">
             <span>${cat}</span>
             <span style="color:${color}; font-weight:600;">${pct}%</span>
@@ -427,7 +457,7 @@ function renderDonut() {
   const exp = mth().filter((t) => t.type === "expense");
   const by = {};
   exp.forEach((t) => {
-    by[t.cat] = (by[t.cat] || 0) + t.amount;
+    by[t.cat] = (by[t.cat] || 0) + Number(t.amount);
   });
   const lbls = Object.keys(by),
     data = Object.values(by);
@@ -457,7 +487,8 @@ function renderDonut() {
       ],
     },
     options: {
-      responsive: false,
+      responsive: true,
+      maintainAspectRatio: true,
       cutout: "70%",
       plugins: { legend: { display: false } },
     },
@@ -484,12 +515,13 @@ function renderDonut503020() {
     estiloVida = 0,
     investimentos = 0;
   exp.forEach((t) => {
+    const val = Number(t.amount);
     if (["Moradia", "Alimentação", "Transporte", "Saúde"].includes(t.cat))
-      essenciais += t.amount;
+      essenciais += val;
     else if (["Lazer", "Outros", "Educação"].includes(t.cat))
-      estiloVida += t.amount;
+      estiloVida += val;
     else if (t.cat === "Investimento" || t.name.startsWith("Aporte:"))
-      investimentos += t.amount;
+      investimentos += val;
   });
 
   const lbls = ["Necessidades (50%)", "Desejos (30%)", "Poupança/Inv. (20%)"];
@@ -520,7 +552,8 @@ function renderDonut503020() {
       ],
     },
     options: {
-      responsive: false,
+      responsive: true,
+      maintainAspectRatio: true,
       cutout: "70%",
       plugins: { legend: { display: false } },
     },
@@ -596,19 +629,24 @@ function renderTrend() {
         {
           label: "Receitas",
           data: incs,
-          borderColor: "#34d399",
-          backgroundColor: "rgba(52,211,153,0.05)",
-          borderWidth: 2,
-          tension: 0.3,
+          borderColor: "#00f5d4",
+          backgroundColor: "rgba(0, 245, 212, 0.05)",
+          borderWidth: 3,
+          tension: 0.4,
           fill: true,
+          pointBackgroundColor: "#00f5d4",
+          pointRadius: 4,
+          pointHoverRadius: 6,
         },
         {
           label: "Despesas",
           data: exps,
-          borderColor: "#f87171",
+          borderColor: "#ff4d6d",
           backgroundColor: "transparent",
-          borderWidth: 2,
-          tension: 0.3,
+          borderWidth: 3,
+          tension: 0.4,
+          pointBackgroundColor: "#ff4d6d",
+          pointRadius: 0, // Esconde pontos para um visual mais "clean"
         },
       ],
     },
@@ -696,7 +734,7 @@ function openFundModal(index) {
 window.confirmGoalFunds = () => {
   const index = document.getElementById("fundTargetIndex").value;
   const amount = parseFloat(document.getElementById("fundAmount").value);
-  if (isNaN(amount) || amount <= 0) return alert("Insira um valor válido.");
+  if (isNaN(amount) || amount <= 0) return showToast("⚠️ Insira um valor de aporte válido.");
   goals[index].current += amount;
   txs.push({
     id: Date.now(),
@@ -720,9 +758,24 @@ function delGoal(i) {
 }
 
 
-function renderTxs() {
+function renderTxs(isLoading = false) {
   const el = document.getElementById("txList");
   if (!el) return;
+
+  if (isLoading) {
+    const skeletonHTML = `
+      <li class="tx-item skeleton-tx-item">
+        <div class="skeleton-tx-ic skeleton-shimmer-box"></div>
+        <div class="tx-info">
+          <div class="skeleton-shimmer-box" style="width: 50%; height: 14px; margin-bottom: 6px;"></div>
+          <div class="skeleton-shimmer-box" style="width: 30%; height: 10px;"></div>
+        </div>
+        <div class="skeleton-shimmer-box" style="width: 70px; height: 18px; margin-right: 14px;"></div>
+      </li>
+    `;
+    el.innerHTML = skeletonHTML.repeat(5); // Gera 5 itens de carregamento
+    return;
+  }
 
   const list = mth()
     .filter((t) => filt === "all" || t.type === filt)
@@ -765,6 +818,9 @@ function renderTxs() {
 }
 
 function delTx(id) {
+  // UX Sênior: Sempre peça confirmação antes de ações destrutivas
+  if (!confirm("Tem certeza que deseja excluir esta movimentação?")) return;
+
   txs = txs.filter((t) => t.id !== id);
   saveDataToCloud();
   render();
@@ -902,7 +958,7 @@ window.saveTx = () => {
   const c = document.getElementById("fCt").value;
   const dt = document.getElementById("fDt").value;
   if (!n || !a || a <= 0 || !dt)
-    return alert("Preencha os campos corretamente.");
+    return showToast("⚠️ Verifique os campos. Descrição, valor e data são obrigatórios.");
   const paid = document.getElementById("fPaid")
     ? document.getElementById("fPaid").checked
     : true;
@@ -930,7 +986,7 @@ window.openBudgetModal = () => {
 window.saveBudget = () => {
   const cat = document.getElementById("bCt").value;
   const limit = parseFloat(document.getElementById("bLmt").value);
-  if (isNaN(limit) || limit <= 0) return alert("Defina um valor limite real.");
+  if (isNaN(limit) || limit <= 0) return showToast("⚠️ Defina um valor limite válido para a categoria.");
   budgets[cat] = limit;
   saveDataToCloud();
   closeM("budgetModal");
@@ -948,7 +1004,7 @@ window.saveGoal = () => {
   const t = parseFloat(document.getElementById("gTg").value);
   const c = parseFloat(document.getElementById("gCr").value) || 0;
   const dl = document.getElementById("gDeadline")?.value || "";
-  if (!n || t <= 0) return alert("Valores inválidos.");
+  if (!n || isNaN(t) || t <= 0) return showToast("⚠️ A meta precisa de um nome e um valor alvo positivo.");
   goals.push({ name: n, target: t, current: c, deadline: dl });
   saveDataToCloud();
   closeM("gmModal");
@@ -1006,7 +1062,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-window.filterTransactionsAdvanced = function () {
+let searchDebounceTimer;
+window.filterTransactionsAdvanced = function (instant = false) {
+  clearTimeout(searchDebounceTimer);
+  
+  const performFilter = () => {
   const query =
     document.getElementById("txSearchInput")?.value.toLowerCase() || "";
   document.querySelectorAll("#txList .tx-item").forEach((item) => {
@@ -1014,6 +1074,10 @@ window.filterTransactionsAdvanced = function () {
       ? "flex"
       : "none";
   });
+  };
+
+  if (instant) performFilter();
+  else searchDebounceTimer = setTimeout(performFilter, 300);
 };
 
 
@@ -1182,7 +1246,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.openProfileModal = () => {
-  if (!currentUser) return alert("Nenhum usuário conectado.");
+  if (!currentUser) return showToast("❌ Nenhum usuário conectado.");
   document.getElementById("pName").value = currentUser.displayName || "";
   document.getElementById("pPhoto").value = currentUser.photoURL || "";
   document.getElementById("profileModalAvatar").src =
@@ -1194,7 +1258,7 @@ window.saveProfile = async () => {
   if (!currentUser) return;
   const nameInput = document.getElementById("pName").value.trim();
   const photoInput = document.getElementById("pPhoto").value.trim();
-  if (!nameInput) return alert("O nome não pode ficar em branco.");
+  if (!nameInput) return showToast("⚠️ O nome não pode ficar em branco.");
   try {
     await updateProfile(currentUser, {
       displayName: nameInput,
@@ -1205,10 +1269,10 @@ window.saveProfile = async () => {
     if (ud) ud.textContent = currentUser.displayName;
     if (ua) ua.src = currentUser.photoURL || defaultAvatar;
     closeM("profileModal");
-    alert("Perfil atualizado com sucesso!");
+    showToast("✅ Perfil atualizado com sucesso!");
   } catch (error) {
     console.error(error);
-    alert("Erro ao atualizar perfil: " + error.message);
+    showToast("❌ Erro ao atualizar perfil: " + error.message);
   }
 };
 
@@ -1221,10 +1285,19 @@ onAuthStateChanged(auth, (user) => {
   const container = document.getElementById("authContainer");
   const ud = document.getElementById("userDisplay");
   const ua = document.getElementById("userAvatar");
+  const mainContent = document.querySelector(".main-content");
 
   if (user) {
     currentUser = user;
-    if (container) container.style.display = "none";
+    if (container) {
+      container.style.opacity = "0";
+      setTimeout(() => {
+        container.style.display = "none";
+        // Garante que o dashboard apareça suavemente
+        if (mainContent) mainContent.classList.add("dashboard-fade-in");
+      }, 300);
+    }
+
     if (ud) ud.textContent = user.displayName || user.email.split("@")[0];
     if (ua) ua.src = user.photoURL || defaultAvatar;
     loadDataFromCloud(user);
@@ -1236,32 +1309,104 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+// Função para registrar todos os eventos de interface
+function initAuthEvents() {
   const bpa = document.getElementById("btnPrimaryAuth");
+  if (!bpa) return;
+
   if (bpa) {
-    bpa.onclick = async () => {
-      const e = document.getElementById("authEmail").value.trim();
-      const p = document.getElementById("authPassword").value;
-      if (!e || !p) return alert("Preencha as credenciais.");
+    // Listener para força da senha
+    const authPwdInput = document.getElementById("authPassword");
+    const strengthWrapper = document.querySelector(".pwd-strength-wrapper");
+    const strengthBar = document.querySelector(".pwd-strength-bar");
+
+    authPwdInput?.addEventListener("input", (e) => {
+      if (!isSignUpMode) {
+        if (strengthWrapper) strengthWrapper.style.display = "none";
+        return;
+      }
+
+      if (strengthWrapper) strengthWrapper.style.display = "block";
+      const pwd = e.target.value;
+      let strength = 0;
+
+      if (pwd.length >= 8) strength++;
+      if (/[A-Z]/.test(pwd)) strength++;
+      if (/[0-9]/.test(pwd)) strength++;
+      if (/[^A-Za-z0-9]/.test(pwd)) strength++;
+
+      const widths = ["0%", "25%", "50%", "75%", "100%"];
+      const colors = ["transparent", "var(--red)", "var(--amber)", "var(--blue)", "var(--green)"];
+
+      if (strengthBar) {
+        strengthBar.style.width = widths[strength];
+        strengthBar.style.backgroundColor = colors[strength];
+        strengthBar.style.boxShadow = `0 0 10px ${colors[strength]}66`;
+      }
+    });
+
+    bpa.onclick = async (event) => {
+      event.preventDefault(); // Impede o reload da página
+      
+      const emailField = document.getElementById("authEmail");
+      const passField = document.getElementById("authPassword");
+
+      if (!emailField || !passField) {
+        return console.error("Erro crítico: IDs 'authEmail' ou 'authPassword' não encontrados no HTML.");
+      }
+
+      const e = emailField.value.trim();
+      const p = passField.value;
+
+      if (!e || !p) return showToast("⚠️ Preencha e-mail e senha.");
+
       try {
+        bpa.disabled = true;
+        bpa.textContent = isSignUpMode ? "Criando conta..." : "Autenticando...";
+
         if (isSignUpMode) {
           await createUserWithEmailAndPassword(auth, e, p);
-          alert("Conta criada com sucesso!");
+          showToast("✅ Conta criada com sucesso!");
         } else {
           await signInWithEmailAndPassword(auth, e, p);
+          showToast("✅ Login realizado!");
         }
       } catch (err) {
-        alert("Erro de acesso: " + err.message);
+        showToast("❌ Erro: " + err.message);
+      } finally {
+        bpa.disabled = false;
+        bpa.textContent = isSignUpMode ? "Criar Conta" : "Entrar";
+      }
+    };
+  }
+
+  const bfp = document.getElementById("btnForgotPass");
+  if (bfp) {
+    bfp.onclick = async (event) => {
+      event.preventDefault();
+      const email = document.getElementById("authEmail").value.trim();
+      
+      if (!email) {
+        return showToast("⚠️ Digite seu e-mail no campo acima para recuperar a senha.");
+      }
+
+      try {
+        await sendPasswordResetEmail(auth, email);
+        showToast("✅ E-mail de recuperação enviado! Verifique sua caixa de entrada.");
+      } catch (err) {
+        showToast("❌ Erro: " + err.message);
       }
     };
   }
 
   const bga = document.getElementById("btnGoogleAuth");
   if (bga) {
-    bga.onclick = async () => {
+    bga.onclick = async (event) => {
+      event.preventDefault();
       try {
         auth.languageCode = "pt-BR";
         await signInWithPopup(auth, googleProvider);
+        showToast("✅ Login com Google realizado!");
       } catch (error) {
         if (error.code === "auth/popup-blocked") {
           alert(
@@ -1276,11 +1421,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const bta = document.getElementById("btnToggleAuth");
   if (bta) {
-    bta.onclick = () => {
+    bta.onclick = (event) => {
+      event.preventDefault();
       isSignUpMode = !isSignUpMode;
-      document.getElementById("btnPrimaryAuth").textContent = isSignUpMode
-        ? "Criar Conta"
-        : "Entrar";
+      
+      // Limpa e esconde a barra de força ao trocar de modo
+      const strengthWrapper = document.querySelector(".pwd-strength-wrapper");
+      if (strengthWrapper) strengthWrapper.style.display = "none";
+      const authPwdInput = document.getElementById("authPassword");
+      if (authPwdInput) authPwdInput.value = "";
+
+      const btnPrimary = document.getElementById("btnPrimaryAuth");
+      const toggleLink = document.getElementById("btnToggleAuth");
+      const authSubtitle = document.querySelector(".auth-subtitle");
+
+      if (btnPrimary) btnPrimary.textContent = isSignUpMode ? "Criar Conta" : "Entrar";
+      if (toggleLink) toggleLink.textContent = isSignUpMode ? "Já tem conta? Entre" : "Não tem conta? Cadastre-se";
+      
+      if (authSubtitle) {
+        authSubtitle.textContent = isSignUpMode 
+          ? "Crie sua conta para começar a organizar suas finanças." 
+          : "Acesse seu painel financeiro profissional.";
+      }
     };
   }
 
@@ -1292,7 +1454,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (e.target === this) closeM(this.id);
     };
   });
-});
+}
+
+// Inicializa os eventos de clique
+initAuthEvents();
 
 
 window.chgM = chgM;
@@ -1476,7 +1641,7 @@ function renderSmartKpis() {
   ];
 
   el.innerHTML = kpis.map(k => `
-    <div class="skpi-card">
+    <div class="skpi-card stagger-item">
       <div class="skpi-icon">${k.icon}</div>
       <div class="skpi-body">
         <div class="skpi-label">${k.label}</div>
