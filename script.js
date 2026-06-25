@@ -99,6 +99,36 @@ let activeChartMode = "categories"; // "categories" | "rule503020"
 // Privacidade
 let isPrivacyModeOn = false;
 
+// Modo Local e Edição
+let isLocalMode = false;
+let editingTxId = null;
+
+async function syncWithLocalServer(action, tx) {
+  if (!isLocalMode) return;
+  try {
+    if (action === "create") {
+      await fetch('http://localhost:3000/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tx)
+      });
+    } else if (action === "update") {
+      await fetch(`http://localhost:3000/api/transactions/${tx.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tx)
+      });
+    } else if (action === "delete") {
+      await fetch(`http://localhost:3000/api/transactions/${tx}`, {
+        method: 'DELETE'
+      });
+    }
+  } catch (err) {
+    console.warn("Servidor local offline ou não respondendo para sincronização REST:", err.message);
+  }
+}
+
+
 async function saveDataToCloud() {
   if (isPlanningMode) {
     showToast("⚠️ Simulação: Alterações retidas localmente.");
@@ -122,7 +152,11 @@ async function saveDataToCloud() {
     }
   }
 
-  if (!currentUser) return;
+  if (isLocalMode || !currentUser) {
+    localStorage.setItem("dashboard_local_data", JSON.stringify({ txs, goals, budgets }));
+    render();
+    return;
+  }
   try {
     await setDoc(doc(db, "users_data", currentUser.uid), {
       txs,
@@ -139,7 +173,52 @@ async function loadDataFromCloud(user) {
   const syncStatus = document.getElementById("syncStatusIndicator");
   try {
     if (mainContent) mainContent.classList.add("loading-state");
+    if (syncStatus) {
+      syncStatus.textContent = "Conectando...";
+      syncStatus.className = "connecting";
+    }
     renderTxs(true); // Dispara o skeleton imediatamente
+
+    if (isLocalMode || user.uid === "local_user") {
+      const localDataStr = localStorage.getItem("dashboard_local_data");
+      if (localDataStr) {
+        const localData = JSON.parse(localDataStr);
+        txs = (localData.txs || []).map(t => ({ ...t, amount: Number(t.amount) }));
+        goals = localData.goals || [];
+        budgets = localData.budgets || {};
+        console.log(`📦 LocalStorage: ${txs.length} transações carregadas.`);
+        if (syncStatus) {
+          syncStatus.textContent = "Modo Local (Offline)";
+          syncStatus.className = "offline";
+        }
+      } else {
+        console.log("Tentando carregar do servidor local...");
+        try {
+          const response = await fetch('http://localhost:3000/api/transactions');
+          if (response.ok) {
+            const localData = await response.json();
+            if (localData.success) {
+              txs = localData.data.map(t => ({ ...t, amount: Number(t.amount) }));
+              goals = [];
+              budgets = {};
+              localStorage.setItem("dashboard_local_data", JSON.stringify({ txs, goals, budgets }));
+              console.log("📦 Servidor Local: Dados carregados.");
+            }
+          }
+        } catch (localErr) {
+          txs = [];
+          goals = [];
+          budgets = {};
+          console.log("Sem dados locais salvos. Iniciando vazio.");
+        }
+        if (syncStatus) {
+          syncStatus.textContent = "Modo Local (Offline)";
+          syncStatus.className = "offline";
+        }
+      }
+      render();
+      return;
+    }
 
     const userDocRef = doc(db, "users_data", user.uid);
     const docSnap = await getDoc(userDocRef);
@@ -152,7 +231,6 @@ async function loadDataFromCloud(user) {
       console.log(`📦 Firebase: ${txs.length} transações carregadas.`);
     } else {
       console.warn("Usuário novo. Tentando migração inicial...");
-      // Fallback para o seu server.js (Node.js) caso o Firebase esteja vazio
       try {
         const response = await fetch('http://localhost:3000/api/transactions');
         if (!response.ok) throw new Error("Servidor local retornou erro.");
@@ -160,7 +238,6 @@ async function loadDataFromCloud(user) {
         if (localData.success) {
           txs = localData.data.map(t => ({ ...t, amount: Number(t.amount) }));
           
-          // PERSISTÊNCIA NA NUVEM: Salva os dados migrados no Firestore
           await setDoc(userDocRef, {
             txs: txs,
             goals: [],
@@ -178,7 +255,10 @@ async function loadDataFromCloud(user) {
     console.error("Erro ao carregar do Firestore:", e);
   } finally {
     if (mainContent) mainContent.classList.remove("loading-state");
-    if (syncStatus) syncStatus.textContent = "Sincronizado Cloud";
+    if (!isLocalMode && syncStatus) {
+      syncStatus.textContent = "Sincronizado Cloud";
+      syncStatus.className = "synced";
+    }
     render(); // Garante que a interface seja desenhada independente do resultado
   }
 }
@@ -798,20 +878,32 @@ function renderTxs(isLoading = false) {
         t.status === "pending"
           ? '<span class="badge-fixo" style="background:rgba(234,179,8,0.15);color:#eab308;">Pendente</span>'
           : "";
-      return `<li class="tx-item">
+      return `<li class="tx-item" data-cat="${t.cat}" data-type="${t.type}">
       <div class="tx-ic" style="background:rgba(${t.type === "income" ? "52,211,153" : "248,113,113"},0.05);color:${clr}"><b>${t.type === "income" ? "↑" : "↓"}</b></div>
       <div class="tx-info">
         <div class="tx-name">${t.name} ${t.recurrent ? '<span class="badge-fixo">Fixo</span>' : ""} ${statusBadge}</div>
         <div class="tx-meta">${t.cat} • ${ds}</div>
       </div>
       <span class="${t.type === "income" ? "tx-in" : "tx-ex"}">${t.type === "income" ? "+" : "-"}${brl(t.amount)}</span>
-      <button class="tx-del" data-id="${t.id}">🗑</button>
+      <div class="tx-actions">
+        <button class="tx-edit" data-id="${t.id}">✏️</button>
+        <button class="tx-del" data-id="${t.id}">🗑</button>
+      </div>
     </li>`;
     })
     .join("");
 
+  el.querySelectorAll(".tx-edit").forEach(
+    (b) => {
+      const idVal = isNaN(Number(b.dataset.id)) ? b.dataset.id : Number(b.dataset.id);
+      b.onclick = () => window.openEditTM(idVal);
+    }
+  );
   el.querySelectorAll(".tx-del").forEach(
-    (b) => (b.onclick = () => delTx(Number(b.dataset.id))),
+    (b) => {
+      const idVal = isNaN(Number(b.dataset.id)) ? b.dataset.id : Number(b.dataset.id);
+      b.onclick = () => delTx(idVal);
+    }
   );
   window.filterTransactionsAdvanced();
   if (isPrivacyModeOn) applyPrivacyBlurEffects();
@@ -821,7 +913,10 @@ function delTx(id) {
   // UX Sênior: Sempre peça confirmação antes de ações destrutivas
   if (!confirm("Tem certeza que deseja excluir esta movimentação?")) return;
 
-  txs = txs.filter((t) => t.id !== id);
+  txs = txs.filter((t) => String(t.id) !== String(id));
+  if (isLocalMode) {
+    syncWithLocalServer("delete", id);
+  }
   saveDataToCloud();
   render();
 }
@@ -895,6 +990,10 @@ window.switchTab = function (tabId) {
 
 
 window.openTM = () => {
+  editingTxId = null;
+  const titleEl = document.querySelector("#tmModal .modal-hd-title");
+  if (titleEl) titleEl.textContent = "Novo Lançamento";
+
   const hoje = new Date();
   document.getElementById("fDt").value = hoje.toISOString().split("T")[0];
   document.getElementById("fNm").value = "";
@@ -904,6 +1003,7 @@ window.openTM = () => {
   // OTIMIZAÇÃO UX: Garante que o tipo padrão começa como despesa de forma explícita
   const fTyp = document.getElementById("fTyp");
   if (fTyp) fTyp.value = "expense";
+  if (window.setFormType) window.setFormType("expense");
 
   const fPaid = document.getElementById("fPaid");
   if (fPaid) fPaid.checked = true;
@@ -911,6 +1011,30 @@ window.openTM = () => {
   updateModalCategories();
   document.getElementById("tmModal").classList.add("open");
 };
+
+function openEditTM(id) {
+  const t = txs.find(x => String(x.id) === String(id));
+  if (!t) return;
+  editingTxId = t.id;
+
+  const titleEl = document.querySelector("#tmModal .modal-hd-title");
+  if (titleEl) titleEl.textContent = "Editar Lançamento";
+
+  document.getElementById("fNm").value = t.name;
+  document.getElementById("fAm").value = t.amount;
+  document.getElementById("fTyp").value = t.type;
+  if (window.setFormType) window.setFormType(t.type);
+  
+  document.getElementById("fCt").value = t.cat;
+  document.getElementById("fDt").value = t.date;
+  document.getElementById("fRecurrent").checked = !!t.recurrent;
+  
+  const fPaid = document.getElementById("fPaid");
+  if (fPaid) fPaid.checked = t.status !== "pending";
+
+  document.getElementById("tmModal").classList.add("open");
+}
+window.openEditTM = openEditTM;
 
 window.openGM = () => {
   document.getElementById("gNm").value = "";
@@ -962,8 +1086,8 @@ window.saveTx = () => {
   const paid = document.getElementById("fPaid")
     ? document.getElementById("fPaid").checked
     : true;
-  txs.push({
-    id: Date.now(),
+    
+  const txData = {
     type: t,
     name: n,
     amount: a,
@@ -971,7 +1095,33 @@ window.saveTx = () => {
     date: dt,
     recurrent: document.getElementById("fRecurrent").checked,
     status: paid ? "paid" : "pending",
-  });
+  };
+
+  if (editingTxId !== null) {
+    const idx = txs.findIndex(x => String(x.id) === String(editingTxId));
+    if (idx !== -1) {
+      txs[idx] = {
+        ...txs[idx],
+        ...txData
+      };
+      if (isLocalMode) {
+        syncWithLocalServer("update", txs[idx]);
+      }
+      showToast("✅ Lançamento atualizado!");
+    }
+    editingTxId = null;
+  } else {
+    const newTx = {
+      id: "tx_" + Date.now(),
+      ...txData
+    };
+    txs.push(newTx);
+    if (isLocalMode) {
+      syncWithLocalServer("create", newTx);
+    }
+    showToast("✅ Lançamento salvo!");
+  }
+  
   saveDataToCloud();
   closeM("tmModal");
   render();
@@ -1067,13 +1217,20 @@ window.filterTransactionsAdvanced = function (instant = false) {
   clearTimeout(searchDebounceTimer);
   
   const performFilter = () => {
-  const query =
-    document.getElementById("txSearchInput")?.value.toLowerCase() || "";
-  document.querySelectorAll("#txList .tx-item").forEach((item) => {
-    item.style.display = item.innerText.toLowerCase().includes(query)
-      ? "flex"
-      : "none";
-  });
+    const query = document.getElementById("txSearchInput")?.value.toLowerCase() || "";
+    const selectedCat = document.getElementById("txCategoryFilter")?.value || "all";
+
+    document.querySelectorAll("#txList .tx-item").forEach((item) => {
+      if (item.classList.contains("empty-state")) return;
+
+      const itemText = item.innerText.toLowerCase();
+      const itemCat = item.getAttribute("data-cat");
+      
+      const matchesQuery = itemText.includes(query);
+      const matchesCat = selectedCat === "all" || itemCat === selectedCat;
+
+      item.style.display = (matchesQuery && matchesCat) ? "flex" : "none";
+    });
   };
 
   if (instant) performFilter();
@@ -1295,6 +1452,12 @@ onAuthStateChanged(auth, (user) => {
         container.style.display = "none";
         // Garante que o dashboard apareça suavemente
         if (mainContent) mainContent.classList.add("dashboard-fade-in");
+        
+        // Ativa a aba padrão (Dashboard) ao iniciar
+        const defaultSec = document.getElementById("dashboard");
+        if (defaultSec && !document.querySelector(".main-content > main > section.active-section")) {
+          defaultSec.classList.add("active-section");
+        }
       }, 300);
     }
 
@@ -1306,6 +1469,11 @@ onAuthStateChanged(auth, (user) => {
     if (container) container.style.display = "flex";
     if (ud) ud.textContent = "Desconectado";
     if (ua) ua.src = defaultAvatar;
+    const syncStatus = document.getElementById("syncStatusIndicator");
+    if (syncStatus) {
+      syncStatus.textContent = "Conectando...";
+      syncStatus.className = "connecting";
+    }
   }
 });
 
@@ -1443,11 +1611,73 @@ function initAuthEvents() {
           ? "Crie sua conta para começar a organizar suas finanças." 
           : "Acesse seu painel financeiro profissional.";
       }
+
+      const forgotPassContainer = document.getElementById("forgotPassContainer");
+      if (forgotPassContainer) {
+        forgotPassContainer.style.display = isSignUpMode ? "none" : "block";
+      }
+    };
+  }
+
+  const bom = document.getElementById("btnOfflineMode");
+  if (bom) {
+    bom.onclick = (event) => {
+      event.preventDefault();
+      isLocalMode = true;
+      
+      currentUser = {
+        uid: "local_user",
+        displayName: "Usuário Offline",
+        photoURL: defaultAvatar
+      };
+      
+      const container = document.getElementById("authContainer");
+      const mainContent = document.querySelector(".main-content");
+      if (container) {
+        container.style.opacity = "0";
+        setTimeout(() => {
+          container.style.display = "none";
+          if (mainContent) mainContent.classList.add("dashboard-fade-in");
+          
+          // Ativa a aba padrão (Dashboard) ao iniciar offline
+          const defaultSec = document.getElementById("dashboard");
+          if (defaultSec && !document.querySelector(".main-content > main > section.active-section")) {
+            defaultSec.classList.add("active-section");
+          }
+        }, 300);
+      }
+      
+      const ud = document.getElementById("userDisplay");
+      const ua = document.getElementById("userAvatar");
+      if (ud) ud.textContent = currentUser.displayName;
+      if (ua) ua.src = currentUser.photoURL;
+
+      loadDataFromCloud(currentUser);
+      showToast("✅ Modo Local ativado!");
     };
   }
 
   const blo = document.getElementById("btnLogout");
-  if (blo) blo.onclick = () => signOut(auth);
+  if (blo) {
+    blo.onclick = () => {
+      if (isLocalMode) {
+        isLocalMode = false;
+        currentUser = null;
+        const container = document.getElementById("authContainer");
+        if (container) {
+          container.style.display = "flex";
+          setTimeout(() => { container.style.opacity = "1"; }, 50);
+        }
+        const ud = document.getElementById("userDisplay");
+        const ua = document.getElementById("userAvatar");
+        if (ud) ud.textContent = "Desconectado";
+        if (ua) ua.src = defaultAvatar;
+        showToast("🚪 Saída do Modo Local.");
+      } else {
+        signOut(auth);
+      }
+    };
+  }
 
   document.querySelectorAll(".modal-bg").forEach((bg) => {
     bg.onclick = function (e) {
@@ -1462,14 +1692,37 @@ initAuthEvents();
 
 window.chgM = chgM;
 window.openTM = openTM;
+window.openEditTM = openEditTM;
 window.openGM = openGM;
 window.openBudgetModal = openBudgetModal;
 
+window.setFormType = function (type) {
+  const select = document.getElementById("fTyp");
+  if (!select) return;
+  select.value = type;
+  select.dispatchEvent(new Event("change"));
+
+  const btnExpense = document.getElementById("segTypeExpense");
+  const btnIncome = document.getElementById("segTypeIncome");
+  if (!btnExpense || !btnIncome) return;
+
+  if (type === "expense") {
+    btnExpense.classList.add("active");
+    btnIncome.classList.remove("active");
+  } else {
+    btnIncome.classList.add("active");
+    btnExpense.classList.remove("active");
+  }
+};
 
 window.scrollToSection = function (id, btn) {
+  document.querySelectorAll(".main-content > main > section").forEach((sec) => {
+    sec.classList.remove("active-section");
+  });
   const target = document.getElementById(id);
   if (target) {
-    target.scrollIntoView({ behavior: "smooth" });
+    target.classList.add("active-section");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
   document
     .querySelectorAll(".sb-item")

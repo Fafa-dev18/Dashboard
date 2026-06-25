@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
+
     <div
       id="authContainer"
       class="auth-overlay-container"
@@ -42,6 +43,12 @@
           />
         </div>
         <button id="btnPrimaryAuth" class="auth-btn-primary">Entrar</button>
+        <p class="auth-toggle-hint" id="forgotPassContainer" style="margin-top: 10px; margin-bottom: 5px;">
+          Esqueceu sua senha?
+          <button id="btnForgotPass" class="auth-toggle-link">
+            Recuperar Senha
+          </button>
+        </p>
         <div class="auth-separator">ou</div>
         <button id="btnGoogleAuth" class="auth-btn-google">
           <img
@@ -50,7 +57,10 @@
           />
           Entrar com o Google
         </button>
-        <p class="auth-toggle-hint">
+        <button id="btnOfflineMode" class="auth-btn-offline" style="margin-top: 10px; width: 100%;">
+          🌐 Continuar Offline (Modo Local)
+        </button>
+        <p class="auth-toggle-hint" style="margin-top: 15px;">
           Não tem uma conta?
           <button id="btnToggleAuth" class="auth-toggle-link">
             Criar Conta
@@ -113,6 +123,7 @@
       <div class="top-actions-bar">
         <span
           id="syncStatusIndicator"
+          class="connecting"
           style="
             font-size: 10px;
             color: var(--text-muted);
@@ -274,14 +285,35 @@
                   </button>
                 </div>
               </div>
-              <div class="search-container">
+              <div class="search-container" style="display: flex; gap: 10px; align-items: center;">
                 <input
                   type="text"
                   id="txSearchInput"
                   class="search-input-field"
                   placeholder="🔎 Buscar por descrição..."
                   oninput="window.filterTransactionsAdvanced()"
+                  style="flex: 1;"
                 />
+                <select
+                  id="txCategoryFilter"
+                  class="fi-select"
+                  onchange="window.filterTransactionsAdvanced(true)"
+                  style="max-width: 160px; margin-bottom: 0; padding: 10px; height: 42px;"
+                >
+                  <option value="all">Todas as Categorias</option>
+                  <!-- Receitas -->
+                  <option value="Salário">Salário</option>
+                  <option value="Freelance">Freelance</option>
+                  <!-- Despesas -->
+                  <option value="Moradia">Moradia</option>
+                  <option value="Alimentação">Alimentação</option>
+                  <option value="Transporte">Transporte</option>
+                  <option value="Saúde">Saúde</option>
+                  <option value="Lazer">Lazer</option>
+                  <option value="Educação">Educação</option>
+                  <option value="Investimento">Investimento</option>
+                  <option value="Outros">Outros</option>
+                </select>
               </div>
               <ul id="txList" class="tx-list-wrap"></ul>
             </div>
@@ -363,10 +395,15 @@
           </div>
           <div class="form-group">
             <label>Tipo</label>
+            <div class="form-segment-control">
+              <button type="button" id="segTypeExpense" class="seg-btn active" onclick="window.setFormType('expense')">💸 Saída</button>
+              <button type="button" id="segTypeIncome" class="seg-btn" onclick="window.setFormType('income')">💰 Entrada</button>
+            </div>
             <select
               id="fTyp"
               class="fi-select"
               onchange="window.updateModalCategories()"
+              style="display: none;"
             >
               <option value="expense">Saída (Despesa)</option>
               <option value="income">Entrada (Receita)</option>

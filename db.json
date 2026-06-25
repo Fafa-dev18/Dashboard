@@ -1,0 +1,30 @@
+[
+  {
+    "id": "tx_k6ebvldb5",
+    "name": "Aluguel",
+    "amount": 1200,
+    "type": "expense",
+    "cat": "Moradia",
+    "date": "2026-06-18",
+    "recurrent": true,
+    "status": "paid"
+  },
+  {
+    "id": 101,
+    "name": "Dividendos Ações",
+    "amount": 450,
+    "type": "income",
+    "cat": "Outros",
+    "date": "2026-06-10",
+    "status": "paid"
+  },
+  {
+    "id": 102,
+    "name": "Conta de Energia",
+    "amount": 185.3,
+    "type": "expense",
+    "cat": "Moradia",
+    "date": "2026-06-12",
+    "status": "paid"
+  }
+]
